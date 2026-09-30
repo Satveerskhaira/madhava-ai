@@ -62,7 +62,11 @@ if echo "$command" | grep -Eq 'git +commit\b'; then
       exit 0
     fi
 
-    filtered=$(printf '%s\n' "$command" | grep -viE '^[[:space:]]*(co-authored-by|author):.*(claude|anthropic)|generated (with|by).*claude')
+    # Anchored to the actual trailer formats (a "Key: value" line, or the
+    # literal markdown-link footer), not any prose that happens to mention
+    # Claude — a loose "generated with...claude" match previously stripped
+    # unrelated sentences describing this very check.
+    filtered=$(printf '%s\n' "$command" | grep -viE '^[[:space:]]*(co-authored-by|author):.*(claude|anthropic)|generated with \[claude code\]\(')
 
     if [ "$filtered" != "$command" ]; then
       jq -n --arg cmd "$filtered" \
