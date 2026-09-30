@@ -1,0 +1,52 @@
+#!/bin/bash
+# PreToolUse guardrail: force a confirmation prompt for destructive git
+# commands run via the Bash tool. A permissionDecision of "ask" forces a
+# prompt regardless of permission mode, including auto/bypassPermissions,
+# per https://code.claude.com/docs/en/hooks#pretooluse-decision-control
+set -euo pipefail
+
+input=$(cat)
+tool_name=$(echo "$input" | jq -r '.tool_name // empty')
+
+[ "$tool_name" = "Bash" ] || exit 0
+
+command=$(echo "$input" | jq -r '.tool_input.command // empty')
+[ -z "$command" ] && exit 0
+
+patterns=(
+  'git +push.*(--force|--force-with-lease|-f( |$))'
+  'git +push.*--delete'
+  'git +reset.*--hard'
+  'git +clean.*-[a-zA-Z]*f'
+  'git +branch.*-D'
+  'git +checkout.* -- '
+  'git +stash.*(drop|clear)'
+  'git +filter-branch'
+  'git +update-ref.*-d'
+  'git +tag.*-d'
+  'git +gc.*--prune=now'
+)
+
+labels=(
+  "force-push (rewrites remote history)"
+  "remote branch/tag deletion"
+  "hard reset (discards uncommitted work)"
+  "clean -f (deletes untracked files)"
+  "force branch delete"
+  "discard working-tree changes"
+  "stash drop/clear (loses stashed work)"
+  "filter-branch (rewrites history)"
+  "ref deletion"
+  "tag deletion"
+  "aggressive gc (prunes unreachable objects immediately)"
+)
+
+for i in "${!patterns[@]}"; do
+  if echo "$command" | grep -Eq "${patterns[$i]}"; then
+    jq -n --arg cmd "$command" --arg label "${labels[$i]}" \
+      '{hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "ask", permissionDecisionReason: ("Destructive git command (" + $label + "): " + $cmd)}}'
+    exit 0
+  fi
+done
+
+exit 0
