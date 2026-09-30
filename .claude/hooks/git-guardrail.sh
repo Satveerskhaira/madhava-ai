@@ -49,4 +49,27 @@ for i in "${!patterns[@]}"; do
   fi
 done
 
+# Strip Claude/Anthropic attribution from git commit messages. This repo's
+# convention is to never list Claude as (co-)author, so rewrite the command
+# silently rather than asking each time.
+if echo "$command" | grep -Eq 'git +commit\b'; then
+  lower=$(printf '%s' "$command" | tr '[:upper:]' '[:lower:]')
+
+  if [[ "$lower" == *claude* || "$lower" == *anthropic* ]]; then
+    if echo "$command" | grep -Eiq -- '--author[= ].*(claude|anthropic)'; then
+      jq -n --arg cmd "$command" \
+        '{hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: "Commit --author references Claude/Anthropic. Remove it and retry — this repo does not credit Claude as an author."}}'
+      exit 0
+    fi
+
+    filtered=$(printf '%s\n' "$command" | grep -viE '^[[:space:]]*(co-authored-by|author):.*(claude|anthropic)|generated (with|by).*claude')
+
+    if [ "$filtered" != "$command" ]; then
+      jq -n --arg cmd "$filtered" \
+        '{hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "allow", updatedInput: {command: $cmd}, additionalContext: "Stripped a Claude/Anthropic attribution line from the commit message per repo convention."}}'
+      exit 0
+    fi
+  fi
+fi
+
 exit 0
