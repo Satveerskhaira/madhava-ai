@@ -1,0 +1,1446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Madhava: claim explanation architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#EEF3F2; --surface:#FFFFFF; --ink:#10243A; --muted:#4D6275; --line:#C9D6D8;
+  --rx:#0E7C74; --rx-soft:#D6ECE9; --fire:#A8650F; --fire-soft:#F6E7CF;
+  --reject:#B42318; --reject-soft:#F8DEDA; --pass:#2F7D4A; --pass-soft:#DCEFE2;
+  --skip:#7A8A96; --code:#F5F8F8;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#0F1A22; --surface:#16242E; --ink:#E3ECEE; --muted:#9DB0BB; --line:#2A3D48;
+    --rx:#3FB8AC; --rx-soft:#163C3C; --fire:#E0A44A; --fire-soft:#3A2D16;
+    --reject:#F2786C; --reject-soft:#3D1F1D; --pass:#6CC98C; --pass-soft:#183223;
+    --skip:#7D8F9B; --code:#12202A;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0F1A22; --surface:#16242E; --ink:#E3ECEE; --muted:#9DB0BB; --line:#2A3D48;
+  --rx:#3FB8AC; --rx-soft:#163C3C; --fire:#E0A44A; --fire-soft:#3A2D16;
+  --reject:#F2786C; --reject-soft:#3D1F1D; --pass:#6CC98C; --pass-soft:#183223;
+  --skip:#7D8F9B; --code:#12202A;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px);-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);
+  font-family:"Instrument Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  font-size:17px;line-height:1.55}
+img,svg{max-width:100%}
+a{color:var(--rx)}
+code,pre{font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.wrap{max-width:1080px;margin:0 auto;padding:0 20px}
+.prose{max-width:68ch}
+h1,h2,h3{line-height:1.15;margin:0}
+h1{font-size:clamp(2rem,5vw,3.3rem);font-weight:700;letter-spacing:-.02em;max-width:18ch}
+h2{font-size:clamp(1.5rem,3vw,2.05rem);font-weight:700;letter-spacing:-.01em;margin-bottom:.6rem}
+h3{font-size:1.1rem;font-weight:600;margin-bottom:.35rem}
+p{margin:.5rem 0 1rem}
+.lede{font-size:1.15rem;color:var(--muted);max-width:60ch}
+section{padding:56px 0;border-top:1px solid var(--line)}
+section:first-of-type{border-top:0}
+
+/* hero */
+header.hero{padding-top:48px;padding-bottom:40px}
+.hero-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:28px;margin-top:28px}
+@media(min-width:900px){.hero-grid{grid-template-columns:330px minmax(0,1fr)}}
+.slip{background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:20px 22px;position:relative;align-self:start}
+.slip::before{content:"";position:absolute;left:0;right:0;top:-1px;height:8px;
+  background:radial-gradient(circle at 6px 0,var(--paper) 4px,transparent 4.5px) repeat-x;background-size:12px 8px}
+.slip dl{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;margin:12px 0 0;font-size:.92rem}
+.slip dt{color:var(--muted)}
+.slip dd{margin:0;font-weight:500}
+.status{display:inline-block;background:var(--reject-soft);color:var(--reject);font-weight:600;border-radius:3px;padding:2px 8px;font-size:.92rem}
+.ask{margin-top:16px;padding-top:14px;border-top:1px dashed var(--line);font-size:1rem}
+.ask strong{display:block;font-size:1.05rem;margin-bottom:2px}
+
+.sim{background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:20px 22px}
+.sim-head{display:flex;flex-wrap:wrap;align-items:center;gap:10px;justify-content:space-between;margin-bottom:14px}
+.controls{display:flex;gap:8px;flex-wrap:wrap}
+button{font:inherit;font-size:.95rem;font-weight:600;border-radius:4px;padding:9px 14px;cursor:pointer;
+  border:1.5px solid var(--rx);background:transparent;color:var(--rx)}
+button.primary{background:var(--rx);color:var(--surface)}
+button:focus-visible{outline:3px solid var(--fire);outline-offset:2px}
+button:disabled{opacity:.55;cursor:default}
+.clock{font-variant-numeric:tabular-nums;font-weight:700;font-size:1.6rem}
+.clock small{font-size:.85rem;font-weight:500;color:var(--muted);margin-left:6px}
+.gantt{display:grid;grid-template-columns:minmax(118px,170px) minmax(0,1fr);gap:7px 12px;align-items:center;font-size:.88rem}
+.gantt .lbl{color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gantt .lbl.orch{color:var(--ink);font-weight:600}
+.track{position:relative;height:18px;background:var(--code);border-radius:2px}
+.bar{position:absolute;top:0;bottom:0;border-radius:2px;background:var(--rx);transform-origin:left center;transform:scaleX(0)}
+.bar.orch{background:var(--ink)}
+.bar.fired{background:var(--fire)}
+.bar.pass{background:var(--pass)}
+.bar.skipped{background:var(--skip)}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:.82rem;color:var(--muted);margin-top:12px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+.answer{margin-top:16px;border-left:3px solid var(--rx);padding:4px 0 4px 14px;min-height:3.2em}
+.answer p{margin:.2rem 0 .5rem}
+.answer .cite{font-size:.85rem;color:var(--muted)}
+.answer.idle{color:var(--muted)}
+
+/* architecture diagram */
+.arch{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;margin-top:24px}
+@media(min-width:900px){.arch{grid-template-columns:minmax(0,1fr) 210px}}
+.layers{display:flex;flex-direction:column;gap:0}
+.layer{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;padding:14px;border:1px solid var(--line);background:var(--surface);border-radius:4px;position:relative}
+@media(min-width:700px){.layer{grid-template-columns:150px minmax(0,1fr)}}
+.layer + .link{height:22px;position:relative}
+.link::before{content:"";position:absolute;left:50%;top:0;bottom:0;border-left:2px solid var(--line)}
+.link span{position:absolute;left:calc(50% + 10px);top:2px;font-size:.78rem;color:var(--muted)}
+.layer-name{font-weight:700;font-size:.95rem}
+.layer-name small{display:block;font-weight:400;color:var(--muted);font-size:.8rem;margin-top:2px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;align-items:flex-start}
+.chip{border:1px solid var(--line);border-radius:3px;padding:5px 9px;font-size:.86rem;background:var(--paper)}
+.chip b{font-weight:600}
+.layer.a2a{border-color:var(--rx);border-width:1.5px}
+.layer.a2a .chip{background:var(--rx-soft);border-color:transparent}
+.layer.orchestr .chip.main{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.rail{border:1px dashed var(--line);border-radius:4px;padding:14px;display:flex;flex-direction:column;gap:6px;align-self:stretch}
+.rail .chip{background:transparent}
+
+/* steps */
+ol.steps{list-style:none;padding:0;margin:20px 0 0;counter-reset:s;display:grid;gap:0}
+ol.steps li{counter-increment:s;display:grid;grid-template-columns:44px minmax(0,1fr);gap:14px;padding:14px 0;border-top:1px solid var(--line)}
+ol.steps li::before{content:counter(s);font-weight:700;font-size:1.4rem;color:var(--rx);font-variant-numeric:tabular-nums}
+ol.steps li p{margin:.15rem 0 0;color:var(--muted)}
+.mermaid-box{background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:16px;margin-top:24px;overflow-x:auto}
+pre.mermaid{margin:0;background:transparent;font-size:.85rem}
+
+/* tables */
+.tbl{overflow-x:auto;margin-top:20px;border:1px solid var(--line);border-radius:4px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:720px;font-size:.92rem}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-weight:600;background:var(--code)}
+tr:last-child td{border-bottom:0}
+td code{font-size:.8rem;background:var(--code);padding:1px 4px;border-radius:2px}
+
+/* code */
+.two{display:grid;grid-template-columns:minmax(0,1fr);gap:18px;margin-top:20px}
+@media(min-width:900px){.two{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+.codecard{background:var(--surface);border:1px solid var(--line);border-radius:4px;overflow:hidden;display:flex;flex-direction:column}
+.codecard h3{padding:12px 14px 0}
+.codecard p{padding:0 14px;margin:.2rem 0 .6rem;color:var(--muted);font-size:.92rem}
+.codecard pre{margin:0;padding:14px;background:var(--code);overflow-x:auto;font-size:.8rem;line-height:1.5;flex:1;border-top:1px solid var(--line)}
+
+/* principles grid */
+.grid3{display:grid;grid-template-columns:minmax(0,1fr);gap:0;margin-top:20px;border-top:1px solid var(--line)}
+@media(min-width:760px){.grid3{grid-template-columns:repeat(2,minmax(0,1fr));column-gap:36px}}
+.grid3 > div{padding:16px 0;border-bottom:1px solid var(--line)}
+.grid3 p{margin:.2rem 0 0;color:var(--muted);font-size:.95rem}
+
+.budget{margin-top:20px;display:grid;gap:6px}
+.brow{display:grid;grid-template-columns:minmax(150px,220px) minmax(0,1fr) 64px;gap:12px;align-items:center;font-size:.9rem}
+.brow .b{height:14px;background:var(--rx);border-radius:2px}
+.brow .b.llm{background:var(--fire)}
+.brow .t{text-align:right;font-variant-numeric:tabular-nums;color:var(--muted)}
+.brow.total{font-weight:700;border-top:1px solid var(--line);padding-top:8px;margin-top:4px}
+.brow.total .t{color:var(--ink)}
+
+.phases{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;margin-top:20px}
+@media(min-width:900px){.phases{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.phase{border-top:3px solid var(--rx);padding-top:12px}
+.phase:nth-child(2){border-top-color:var(--fire)}
+.phase:nth-child(3){border-top-color:var(--ink)}
+.phase ul{padding-left:1.1rem;margin:.4rem 0 0;color:var(--muted);font-size:.95rem}
+.phase li{margin-bottom:.3rem}
+footer{padding:36px 0 56px;color:var(--muted);font-size:.9rem;border-top:1px solid var(--line)}
+
+@media (prefers-reduced-motion:reduce){.bar{transition:none!important}}
+/* top navigation between views */
+.topnav{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--paper);border-bottom:1px solid var(--line)}
+.topnav .wrap{display:flex;gap:4px;overflow-x:auto;padding-top:8px;padding-bottom:0}
+.topnav a{flex:none;text-decoration:none;color:var(--muted);font-weight:600;font-size:.95rem;padding:10px 12px 11px;border-bottom:3px solid transparent}
+.topnav a[aria-current="page"]{color:var(--ink);border-bottom-color:var(--rx)}
+.topnav a:focus-visible{outline:3px solid var(--fire);outline-offset:-3px}
+.view.off{position:absolute;left:-200vw;top:0;width:100%;visibility:hidden}
+
+/* flow view */
+.scen{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.scen-btn[aria-selected="true"]{background:var(--rx);color:var(--surface)}
+.stage-wrap{background:var(--surface);border:1px solid var(--line);border-radius:4px;overflow-x:auto}
+#stage{display:block;width:100%;min-width:820px;height:auto}
+#stage .node rect.box{fill:var(--surface);stroke:var(--line);stroke-width:1.2}
+#stage .node rect.kind{fill:var(--line)}
+#stage .node.k-agent rect.kind{fill:var(--rx)}
+#stage .node.k-tool rect.kind{fill:var(--ink)}
+#stage .node.k-llm rect.kind{fill:var(--fire)}
+#stage .node.k-data rect.kind{fill:var(--muted)}
+#stage .node.k-person rect.kind{fill:var(--pass)}
+#stage .node text{fill:var(--ink);font-family:"Instrument Sans",system-ui,sans-serif;font-size:12.5px;font-weight:600}
+#stage .node text.sub{fill:var(--muted);font-size:10.5px;font-weight:400}
+#stage .node{transition:opacity .25s}
+#stage.playing .node{opacity:.45}
+#stage.playing .node.done{opacity:.8}
+#stage.playing .node.active{opacity:1}
+#stage .node.active rect.box{fill:var(--rx-soft);stroke:var(--rx);stroke-width:2.2}
+#stage .group rect{fill:none;stroke:var(--line);stroke-dasharray:5 4;stroke-width:1.2}
+#stage .group text{fill:var(--muted);font-family:"Instrument Sans",system-ui,sans-serif;font-size:11.5px}
+#stage .group.active rect{stroke:var(--rx)}
+#stage .edge{fill:none;stroke:var(--line);stroke-width:1.3}
+#stage .edge.active{stroke:var(--rx);stroke-width:2.4;stroke-dasharray:7 5;animation:dash .7s linear infinite}
+#stage .edge.done{stroke:var(--rx);opacity:.35}
+#stage .bubble rect{fill:var(--ink)}
+#stage .bubble text{fill:var(--surface);font-family:"Instrument Sans",system-ui,sans-serif;font-size:11px;font-weight:600}
+#stage marker path{fill:var(--line)}
+#stage marker.on path{fill:var(--rx)}
+@keyframes dash{to{stroke-dashoffset:-12}}
+@media (prefers-reduced-motion:reduce){#stage .edge.active{animation:none}}
+.flow-ctl{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:14px 0}
+.fcount{color:var(--muted);font-size:.92rem;margin-left:6px;font-variant-numeric:tabular-nums}
+.flow-body{display:grid;grid-template-columns:minmax(0,1fr);gap:18px}
+@media(min-width:900px){.flow-body{grid-template-columns:300px minmax(0,1fr)}}
+.fsteps{list-style:none;margin:0;padding:0;counter-reset:f;border-top:1px solid var(--line)}
+.fsteps li{counter-increment:f;border-bottom:1px solid var(--line)}
+.fsteps button{all:unset;box-sizing:border-box;display:grid;grid-template-columns:28px 1fr;gap:6px;width:100%;padding:8px 6px;cursor:pointer;font-size:.92rem;color:var(--muted)}
+.fsteps button::before{content:counter(f);font-weight:700;color:var(--rx);font-variant-numeric:tabular-nums}
+.fsteps button:focus-visible{outline:3px solid var(--fire);outline-offset:-2px}
+.fsteps li.cur button{color:var(--ink);font-weight:600;background:var(--rx-soft)}
+.fdetail{background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:16px 18px;align-self:start;min-width:0}
+.fdetail h3{font-size:1.25rem}
+.fdetail p{color:var(--muted);max-width:66ch}
+.fmeta{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.fmeta span{font-size:.82rem;border:1px solid var(--line);border-radius:3px;padding:3px 8px;background:var(--paper)}
+.fmeta span.time{border-color:var(--fire);color:var(--fire);font-weight:600}
+.fdetail pre{margin:0;background:var(--code);border:1px solid var(--line);border-radius:3px;padding:12px;font-size:.78rem;line-height:1.5;overflow-x:auto;max-height:340px}
+
+/* tech view */
+.topo{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;margin-top:20px}
+@media(min-width:900px){.topo{grid-template-columns:minmax(0,1fr) 260px}}
+.cluster{border:1.5px solid var(--ink);border-radius:6px;padding:14px;background:var(--surface)}
+.cl-head{font-weight:700;margin-bottom:10px}
+.cl-foot{margin-top:12px;font-size:.85rem;color:var(--muted)}
+.ns-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;align-items:start}
+.ns{border:1px dashed var(--line);border-radius:4px;padding:10px;display:flex;flex-direction:column;gap:4px;background:var(--paper)}
+.ns b{font-size:.9rem;margin-bottom:2px}
+.ns span{font-size:.85rem;font-family:"JetBrains Mono",ui-monospace,monospace;color:var(--muted)}
+.ns.a2a{border-color:var(--rx);background:var(--rx-soft)}
+.ext{display:flex;flex-direction:column;gap:12px}
+.ext-box{border:1px solid var(--line);border-radius:4px;padding:12px;display:flex;flex-direction:column;gap:4px;background:var(--surface)}
+.ext-box b{font-size:.92rem;margin-bottom:2px}
+.ext-box span{font-size:.88rem;color:var(--muted)}
+</style>
+</head>
+<body>
+<nav class="topnav" aria-label="Pages"><div class="wrap">
+  <a href="#explain" aria-current="page">How it explains</a>
+  <a href="#end-to-end">End-to-end flow</a>
+  <a href="#technology">Backend technology</a>
+</div></nav>
+<div class="view" id="view-overview">
+
+<header class="hero wrap">
+  <h1>Explaining every pharmacy claim with domain agents working in parallel</h1>
+  <p class="lede">Madhava reconstructs why a claim adjudicated the way it did. It uses SME rule cards, date-of-service plan data and deterministic evaluation. Specialist agents investigate each domain at the same time over A2A, then one synthesizer writes an answer with evidence.</p>
+
+  <div class="hero-grid">
+    <aside class="slip" aria-label="Example claim">
+      <span class="status">Rejected 75</span>
+      <dl>
+        <dt>Claim</dt><dd>RX-2026-0914-77231</dd>
+        <dt>Date of service</dt><dd>14 Sep 2026</dd>
+        <dt>Drug</dt><dd>Brand GLP-1 pen, 30 DS</dd>
+        <dt>Pharmacy</dt><dd>Retail, in network</dd>
+        <dt>Plan</dt><dd>Commercial, 4-tier</dd>
+      </dl>
+      <div class="ask"><strong>“Why was this rejected, and what would it cost if approved?”</strong>Asked by a care-team agent on a member call.</div>
+    </aside>
+
+    <div class="sim" aria-live="polite">
+      <div class="sim-head">
+        <div class="controls">
+          <button class="primary" id="runPar">Explain in parallel</button>
+          <button id="runSeq">Explain one by one</button>
+        </div>
+        <div class="clock" id="clock">0.0 s<small id="clockNote">illustrative timings</small></div>
+      </div>
+      <div class="gantt" id="gantt"></div>
+      <div class="legend">
+        <span><i style="background:var(--ink)"></i>Orchestrator</span>
+        <span><i style="background:var(--fire)"></i>Rule fired, explains outcome</span>
+        <span><i style="background:var(--pass)"></i>Checked, no issue</span>
+        <span><i style="background:var(--skip)"></i>Not reached by adjudication</span>
+      </div>
+      <div class="answer idle" id="answer">Run the explanation to see how seven domain agents investigate this claim and how one answer is assembled from their findings.</div>
+    </div>
+  </div>
+</header>
+
+<main>
+<section id="architecture">
+  <div class="wrap">
+    <h2>The architecture, layer by layer</h2>
+    <p class="prose">Agents talk to each other over A2A. Agents use tools over MCP. Rules and plan data meet only inside the deterministic evaluator, so a model never decides whether a rule applies. It only selects candidates and explains results.</p>
+
+    <div class="arch">
+      <div class="layers">
+        <div class="layer">
+          <div class="layer-name">Channels<small>Who asks</small></div>
+          <div class="chips">
+            <span class="chip">Care-team console</span><span class="chip">Ops and SME chat</span>
+            <span class="chip">Client service portal</span><span class="chip">Batch audit jobs</span><span class="chip">Partner APIs</span>
+          </div>
+        </div>
+        <div class="link"><span>HTTPS, OAuth2, PHI policy</span></div>
+        <div class="layer">
+          <div class="layer-name">Edge<small>Entry and guardrails</small></div>
+          <div class="chips">
+            <span class="chip">API gateway</span><span class="chip">Identity and entitlements</span>
+            <span class="chip">Rate limits per tenant</span><span class="chip">Explanation cache</span>
+          </div>
+        </div>
+        <div class="link"><span>request</span></div>
+        <div class="layer orchestr">
+          <div class="layer-name">Orchestration<small>One per question</small></div>
+          <div class="chips">
+            <span class="chip main"><b>Claim Explainer orchestrator</b></span>
+            <span class="chip">Understand: small model reads free-text questions</span><span class="chip">Triage: fetch claim once, build context packet</span>
+            <span class="chip">Router: reject codes and outcome fields to domains</span>
+            <span class="chip">Fan-out with deadlines</span>
+            <span class="chip">Synthesizer: precedence, coverage check, strong model writes answer</span>
+          </div>
+        </div>
+        <div class="link"><span>A2A tasks in parallel, SSE streaming</span></div>
+        <div class="layer a2a">
+          <div class="layer-name">Domain agents<small>Independent services, own rules</small></div>
+          <div class="chips">
+            <span class="chip">Eligibility and member</span><span class="chip">Formulary and coverage</span>
+            <span class="chip">Utilization management (PA, ST, QL)</span><span class="chip">Clinical DUR</span>
+            <span class="chip">Pricing and cost share</span><span class="chip">Pharmacy network</span>
+            <span class="chip">COB and other payer</span><span class="chip">Plan change history</span>
+          </div>
+        </div>
+        <div class="link"><span>MCP tool calls, scoped per agent</span></div>
+        <div class="layer">
+          <div class="layer-name">Tool servers<small>Shared, deterministic</small></div>
+          <div class="chips">
+            <span class="chip"><b>Claim tools</b> snapshot, response, history</span>
+            <span class="chip"><b>Plan slice service</b> path projection by DOS</span>
+            <span class="chip"><b>Rule registry</b> lookup, vector search, versions</span>
+            <span class="chip"><b>Rule evaluator</b> CEL conditions, evidence</span>
+            <span class="chip"><b>Field catalog</b> path meaning and lineage</span>
+          </div>
+        </div>
+        <div class="link"><span>reads</span></div>
+        <div class="layer">
+          <div class="layer-name">Data<small>Systems of record</small></div>
+          <div class="chips">
+            <span class="chip">Claims and adjudication history</span><span class="chip">Plan setup API, ~12k fields</span>
+            <span class="chip">MongoDB rule cards with Atlas Vector Search</span><span class="chip">Git rule repository</span>
+            <span class="chip">Redis plan slice and rule cache</span><span class="chip">Audit and explanation store</span>
+          </div>
+        </div>
+      </div>
+      <aside class="rail" aria-label="Platform services">
+        <div class="layer-name">Platform<small>Used by every layer</small></div>
+        <span class="chip">GKE, one deployment per agent</span>
+        <span class="chip">Service mesh with mTLS</span>
+        <span class="chip">LLM gateway: model routing, quotas, fallbacks</span>
+        <span class="chip">OpenTelemetry traces across A2A and MCP</span>
+        <span class="chip">Secrets and key management</span>
+        <span class="chip">Evaluation harness with golden claims</span>
+        <span class="chip">CI for rule cards</span>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<section id="flow">
+  <div class="wrap">
+    <h2>What happens when someone asks “why?”</h2>
+    <p class="prose">The same eight steps run for every question. Only the set of domain agents changes.</p>
+    <ol class="steps">
+      <li><div><h3>Anchor on the claim</h3><p>The orchestrator calls claim tools once and stores a snapshot. It extracts outcome tokens: each reject code, each pricing component, each DUR flag. These are the facts the final answer must explain.</p></div></li>
+      <li><div><h3>Resolve the date context</h3><p>Date of service picks the plan version and the rule set in force. The user can ask for rules as of today instead, to answer “would this happen now?”</p></div></li>
+      <li><div><h3>Route to domains</h3><p>A deterministic table maps reject codes and outcome fields to domains. For free-text questions, a small model adds domains. Cheap neighbouring domains are included speculatively, so nothing waits on a second round.</p></div></li>
+      <li><div><h3>Fan out over A2A</h3><p>Each selected agent receives a task with a context reference, not a copy of PHI. All tasks start together under one deadline, typically four seconds.</p></div></li>
+      <li><div><h3>Find candidate rules</h3><p>Each agent queries the rule registry inside its own domain by trigger, then by vector similarity when the question is fuzzy. Only rules effective on the claim's date come back.</p></div></li>
+      <li><div><h3>Fetch only the plan paths each rule reads</h3><p>The rule card lists its plan paths. The plan slice service returns just those values for the plan version, usually from cache.</p></div></li>
+      <li><div><h3>Evaluate and return findings</h3><p>The evaluator runs the rule condition and returns fired or not fired, with the exact claim and plan values used. The agent returns structured findings, streaming each as it completes.</p></div></li>
+      <li><div><h3>Synthesize and check coverage</h3><p>The synthesizer orders findings by adjudication precedence and confirms every outcome token is explained by at least one finding. Anything unexplained is stated as a gap and logged for SMEs, never filled in by the model.</p></div></li>
+    </ol>
+
+    <div class="mermaid-box">
+<pre class="mermaid">
+sequenceDiagram
+  autonumber
+  participant U as Care-team user
+  participant O as Orchestrator
+  participant C as Claim tools
+  participant UM as UM agent
+  participant FC as Coverage agent
+  participant PR as Pricing agent
+  participant R as Rule registry
+  participant P as Plan slice service
+  participant E as Rule evaluator
+  participant S as Synthesizer
+  U->>O: Why rejected? Cost if approved?
+  O->>C: get_claim(id)
+  C-->>O: snapshot, reject 75, DOS
+  O->>O: route: UM, coverage, pricing, plus speculative domains
+  par A2A fan-out
+    O->>UM: task(contextRef)
+    UM->>R: find_rules(domain=UM, reject=75, dos)
+    UM->>P: get_plan_slice(paths, dos)
+    UM->>E: evaluate(UM-PA-TIER4 v3)
+    E-->>UM: fired, evidence
+    UM-->>O: finding (streamed)
+  and
+    O->>FC: task(contextRef)
+    FC->>E: evaluate(FC-TIER-MAP v7)
+    FC-->>O: finding: Tier 4 non-preferred
+  and
+    O->>PR: task(contextRef, mode=what-if)
+    PR->>E: evaluate cost share rules as if approved
+    PR-->>O: finding: 25% coinsurance, max 150
+  end
+  O->>S: findings plus outcome tokens
+  S-->>U: answer with rule IDs, versions, evidence
+</pre>
+    </div>
+  </div>
+</section>
+
+<section id="agents">
+  <div class="wrap">
+    <h2>Domain agents and what each one owns</h2>
+    <p class="prose">Each agent is a separate deployable service owned with its SME team. It publishes an agent card describing its skills and triggers, owns its rule cards, and can scale and release on its own schedule.</p>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>Agent</th><th>Explains</th><th>Typical triggers</th><th>Plan areas it reads</th></tr></thead>
+        <tbody>
+          <tr><td><b>Eligibility and member</b></td><td>Inactive coverage, wrong group, dependent age, terminated member</td><td>Rejects 65, 67, 68, 69</td><td><code>eligibility.*</code> <code>group.effectiveDates</code></td></tr>
+          <tr><td><b>Formulary and coverage</b></td><td>Not covered, excluded, tier placement, plan exclusions</td><td>Reject 70; tier and formulary status in response</td><td><code>formulary.*</code> <code>benefit.tier.map</code> <code>exclusions.*</code></td></tr>
+          <tr><td><b>Utilization management</b></td><td>Prior auth, step therapy, quantity and days supply limits</td><td>Rejects 75, 76</td><td><code>benefit.pa.*</code> <code>stepTherapy.*</code> <code>limits.*</code></td></tr>
+          <tr><td><b>Clinical DUR</b></td><td>Drug interactions, duplicate therapy, early refill, age or gender edits</td><td>Rejects 79, 88; DUR response segment</td><td><code>dur.edits.*</code> <code>refillTooSoon.*</code></td></tr>
+          <tr><td><b>Pricing and cost share</b></td><td>Copay, coinsurance, deductible, OOP, accumulators, what-if pricing</td><td>Paid claims, cost questions, any what-if</td><td><code>costShare.*</code> <code>accumulators.*</code> <code>pricing.basis</code></td></tr>
+          <tr><td><b>Pharmacy network</b></td><td>Out of network, specialty channel, mail-only, network pricing</td><td>Network and channel rejects; channel questions</td><td><code>network.*</code> <code>specialty.channel</code></td></tr>
+          <tr><td><b>COB and other payer</b></td><td>Secondary billing, other coverage codes, patient pay amounts</td><td>Rejects 41, 13; OCC present</td><td><code>cob.*</code> <code>otherPayer.*</code></td></tr>
+          <tr><td><b>Plan change history</b></td><td>What changed between versions, why a refill behaved differently</td><td>“It worked last month”, rules-as-of diff</td><td>Plan version diffs, rule card versions</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section id="linking">
+  <div class="wrap">
+    <h2>How rules link to API data</h2>
+    <p class="prose">The rule card is the join. Its triggers make it findable from a claim outcome. Its reads tell the plan slice service which of the 12k fields to fetch. The field catalog gives every path a meaning, owner and type, so CI can reject a rule that points at a path the API no longer has.</p>
+    <div class="two">
+      <div class="codecard">
+        <h3>Rule card, stored in MongoDB, authored in Git</h3>
+        <p>Versioned by effective dates. Conditions are CEL, so they are sandboxed, typed and fast.</p>
+<pre>{
+  "id": "UM-PA-TIER4",
+  "domain": "utilization_mgmt",
+  "version": 3,
+  "effective": { "from": "2024-01-01", "to": null },
+  "triggers": {
+    "rejectCodes": ["75"],
+    "outcomeFields": ["response.status"]
+  },
+  "reads": {
+    "claim": ["drug.gpi", "pa.onFile", "dos"],
+    "plan":  ["benefit.tier.map[gpi]",
+              "benefit.pa.required[tier]"]
+  },
+  "condition": "plan.tier == 4 &amp;&amp;
+     plan.paRequired &amp;&amp; !claim.paOnFile",
+  "explains": ["reject:75"],
+  "precedence": 30,
+  "template": "Tier {{plan.tier}} drugs need prior
+     authorization on this plan; none was on file.",
+  "owner": "um-sme-team",
+  "sourceDoc": "UM policy 4.2"
+}</pre>
+      </div>
+      <div class="codecard">
+        <h3>Field catalog entry</h3>
+        <p>Generated from the plan setup API schema, then enriched by SMEs. Used by CI, the plan slice service and the agents' prompts.</p>
+<pre>{
+  "path": "benefit.pa.required[tier]",
+  "apiPointer": "/benefits/pa/tiers/*/required",
+  "type": "boolean",
+  "domain": "utilization_mgmt",
+  "meaning": "Prior authorization required
+     for drugs placed on this tier",
+  "versionedBy": "plan.effectiveDate",
+  "phi": false,
+  "owner": "plan-setup-team",
+  "usedByRules": ["UM-PA-TIER4", "UM-PA-SPEC"]
+}</pre>
+      </div>
+      <div class="codecard">
+        <h3>Finding, returned by every domain agent</h3>
+        <p>The A2A task artifact. The synthesizer only works with findings, never raw plan data.</p>
+<pre>{
+  "domain": "utilization_mgmt",
+  "status": "fired",
+  "rule": { "id": "UM-PA-TIER4", "version": 3 },
+  "explains": ["reject:75"],
+  "confidence": "confirmed",
+  "evidence": [
+    { "src": "plan", "path": "benefit.tier.map[gpi]",
+      "value": 4, "planVersion": "2026.07" },
+    { "src": "plan", "path": "benefit.pa.required[4]",
+      "value": true },
+    { "src": "claim", "path": "pa.onFile",
+      "value": false }
+  ],
+  "narrative": "Tier 4 drugs need prior
+     authorization on this plan; none was on file."
+}</pre>
+      </div>
+      <div class="codecard">
+        <h3>Agent card, published by each agent</h3>
+        <p>Lets the orchestrator discover agents and route by declared triggers instead of hard-coded lists.</p>
+<pre>{
+  "name": "um-agent",
+  "description": "Explains prior auth, step
+     therapy and quantity limit outcomes",
+  "url": "https://agents.internal/um",
+  "version": "1.4.0",
+  "capabilities": { "streaming": true },
+  "skills": [{
+    "id": "explain_um_outcome",
+    "name": "Explain UM outcome",
+    "tags": ["prior_auth", "step_therapy",
+             "quantity_limit"]
+  }],
+  "x-routing": {
+    "rejectCodes": ["75", "76"],
+    "ruleDomain": "utilization_mgmt"
+  }
+}</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="trust">
+  <div class="wrap">
+    <h2>Why the answers can be trusted</h2>
+    <p class="prose">The adjudication engine emits no rule trace, so every explanation is a reconstruction. These controls make that explicit and measurable.</p>
+    <div class="grid3">
+      <div><h3>Deterministic decisions</h3><p>Whether a rule fired is decided by the CEL evaluator on real values. The model selects candidate rules and turns findings into language.</p></div>
+      <div><h3>Confidence levels</h3><p>Confirmed when the rule's declared outcome matches the actual response exactly. Consistent when it fits but another rule could too. Unverified when inputs were missing.</p></div>
+      <div><h3>Outcome coverage check</h3><p>Every reject code and pricing component must be explained by at least one finding. Uncovered outcomes are shown as gaps and become the SME backlog.</p></div>
+      <div><h3>Precedence resolution</h3><p>When several rules fire, the synthesizer orders them by adjudication sequence: eligibility, coverage, UM, DUR, network, pricing. The first blocking rule is the primary reason.</p></div>
+      <div><h3>Rules as they were</h3><p>Rule cards carry effective dates and versions. Old claims are explained with rules in force on the date of service. A rules-as-of switch shows how today's rules would treat the same claim.</p></div>
+      <div><h3>Replay against reality</h3><p>Golden claims with known outcomes run in CI on every rule change. The headline metric is match rate: the top finding agrees with the engine's actual result.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="scale">
+  <div class="wrap">
+    <h2>Scaling to enterprise volume</h2>
+    <p class="prose">Parallel fan-out makes latency roughly the slowest agent instead of the sum of all agents. The rest of the speed comes from keeping models out of the hot path where they are not needed.</p>
+
+    <h3 style="margin-top:20px">Latency budget for one interactive question, p95</h3>
+    <div class="budget" role="img" aria-label="Latency budget totalling about 5.5 seconds">
+      <div class="brow"><span>Gateway and explanation cache check</span><div class="b" style="width:2%"></div><span class="t">60 ms</span></div>
+      <div class="brow"><span>Claim snapshot and outcome tokens</span><div class="b" style="width:6%"></div><span class="t">300 ms</span></div>
+      <div class="brow"><span>Routing, table first, small model for free text</span><div class="b llm" style="width:8%"></div><span class="t">400 ms</span></div>
+      <div class="brow"><span>Domain agents in parallel, slowest one</span><div class="b llm" style="width:62%"></div><span class="t">3.2 s</span></div>
+      <div class="brow"><span>Synthesis, first token streamed</span><div class="b llm" style="width:28%"></div><span class="t">1.5 s</span></div>
+      <div class="brow total"><span>Total</span><span></span><span class="t">~5.5 s</span></div>
+    </div>
+    <p style="color:var(--muted);font-size:.9rem">Run one by one, the same eight agents take 15 to 20 seconds. Inside each agent, plan slices from cache take about 20 ms and rule evaluation under 10 ms. The model call is the dominant cost.</p>
+
+    <div class="grid3">
+      <div><h3>Cache what rarely changes</h3><p>Plan slices are cached by plan ID, plan version and path set. Plan versions change rarely, so hit rates are high. Rule cards live in agent memory and are refreshed by MongoDB change streams.</p></div>
+      <div><h3>Cache whole explanations</h3><p>The key is claim ID, rules-as-of and rule set hash. A claim asked about by three people in an hour is explained once. Any rule change in that domain invalidates it.</p></div>
+      <div><h3>Scale each agent on its own</h3><p>Each agent is its own GKE deployment, autoscaled on in-flight tasks through KEDA or custom metrics. Pricing and UM agents get the most traffic and scale independently of the rest.</p></div>
+      <div><h3>Deadlines and partial answers</h3><p>Every A2A task carries a deadline. A slow agent's result is marked pending and the answer goes out with what is confirmed. Bulkheads stop one domain's failures from consuming shared capacity.</p></div>
+      <div><h3>Protect the plan setup API</h3><p>All access goes through the plan slice service with circuit breakers, request coalescing for identical slices, and per-path projection so callers never pull the full 12k-field payload.</p></div>
+      <div><h3>Right-size the models</h3><p>Domain agents use a small, fast model, or skip the model when the route table and templates are enough. The synthesizer uses a stronger model. The LLM gateway handles quotas, prompt caching and fallback.</p></div>
+      <div><h3>Batch mode for audits</h3><p>Thousands of claims for audits or client reviews go through a queue such as Pub/Sub. Batch workers use the same agents with lower priority and no streaming.</p></div>
+      <div><h3>Discovery, not wiring</h3><p>The orchestrator reads agent cards from a registry. A new domain team ships an agent with its card and rules, and routing picks it up without an orchestrator release.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="security">
+  <div class="wrap">
+    <h2>Security, privacy and audit</h2>
+    <div class="grid3">
+      <div><h3>Minimum necessary data</h3><p>Agents receive a context reference and fetch only the claim and plan paths their rules read. PHI never goes into the vector index, which holds rule text only.</p></div>
+      <div><h3>Scoped identities</h3><p>Every agent has its own workload identity and OAuth2 scopes. The UM agent can call UM rules and UM plan paths, nothing else. Agent-to-agent traffic uses mTLS.</p></div>
+      <div><h3>Reproducible explanations</h3><p>Each answer is stored with the claim snapshot reference, plan version, rule IDs and versions, evaluated inputs and final text. Auditors can replay it exactly.</p></div>
+      <div><h3>Prompt injection hygiene</h3><p>Free-text claim fields and rule prose are passed as data, never as instructions. Tool scopes limit what a manipulated agent could reach anyway.</p></div>
+      <div><h3>Approved model endpoints</h3><p>Models run only through the LLM gateway on endpoints approved for PHI, with retention controls and redaction in logs and traces.</p></div>
+      <div><h3>Rule governance</h3><p>Rules move from Git pull request to SME review, schema and path validation, golden-claim replay, then publish. A UI editor later writes to the same pipeline.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="observability">
+  <div class="wrap">
+    <h2>Observability and quality</h2>
+    <p class="prose">One trace ID follows the question through the orchestrator, every A2A task and every MCP tool call. That makes a slow or wrong answer diagnosable in minutes.</p>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>Signal</th><th>What it tells you</th><th>Target to start with</th></tr></thead>
+        <tbody>
+          <tr><td>Match rate on golden claims</td><td>Top finding agrees with the engine's actual outcome</td><td>95% before a domain goes live</td></tr>
+          <tr><td>Coverage gap rate</td><td>Share of outcome tokens with no finding, by domain and reject code</td><td>Falling every sprint</td></tr>
+          <tr><td>p95 latency per agent</td><td>Which domain sets the overall response time</td><td>Under 3.5 s</td></tr>
+          <tr><td>Plan slice cache hit rate</td><td>Load placed on the plan setup API</td><td>Above 90%</td></tr>
+          <tr><td>Tokens and cost per explanation</td><td>Whether routing and templates keep models out of the hot path</td><td>Tracked per channel</td></tr>
+          <tr><td>User feedback on answers</td><td>Thumbs down linked to trace and rule IDs, routed to the owning SME team</td><td>Reviewed weekly</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section id="roadmap">
+  <div class="wrap">
+    <h2>Getting there in three phases</h2>
+    <div class="phases">
+      <div class="phase">
+        <h3>Prove explanations</h3>
+        <ul>
+          <li>One agent, two domains: UM and coverage</li>
+          <li>Rule cards in Git, published to MongoDB</li>
+          <li>Plan slice service, CEL evaluator, field catalog</li>
+          <li>Golden claim replay and match rate</li>
+        </ul>
+      </div>
+      <div class="phase">
+        <h3>Split into domain agents</h3>
+        <ul>
+          <li>Orchestrator with A2A fan-out and deadlines</li>
+          <li>Agent cards and registry-based routing</li>
+          <li>Pricing what-if, DUR and eligibility agents</li>
+          <li>Explanation cache and per-agent autoscaling</li>
+        </ul>
+      </div>
+      <div class="phase">
+        <h3>Run at enterprise scale</h3>
+        <ul>
+          <li>All domains, plan change history agent</li>
+          <li>Batch mode for audits and client reviews</li>
+          <li>UI rule authoring on the same pipeline</li>
+          <li>Rules-as-of comparisons for any claim</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+</div>
+<div class="view off" id="view-flow" inert>
+<header class="hero wrap" style="padding-bottom:8px">
+  <h1>From question to answer, step by step</h1>
+  <p class="lede">Walk through the system as it runs. Each step lights up the services involved, the calls between them, and the payload that moves. Pick a scenario, then play it or step through.</p>
+</header>
+<section style="border-top:0;padding-top:12px">
+  <div class="wrap">
+    <div class="scen" role="tablist" aria-label="Scenario">
+      <button class="scen-btn" data-s="question" role="tab">A member call question</button>
+      <button class="scen-btn" data-s="rules" role="tab">A rule change goes live</button>
+      <button class="scen-btn" data-s="batch" role="tab">A batch audit of 25,000 claims</button>
+    </div>
+    <div class="stage-wrap"><svg id="stage" viewBox="0 0 1000 620" role="img" aria-label="System flow diagram"></svg></div>
+    <div class="flow-ctl">
+      <button id="fPrev">Back</button>
+      <button class="primary" id="fPlay">Play</button>
+      <button id="fNext">Next step</button>
+      <span id="fCount" class="fcount"></span>
+    </div>
+    <div class="flow-body">
+      <ol class="fsteps" id="fSteps"></ol>
+      <div class="fdetail">
+        <h3 id="fTitle"></h3>
+        <p id="fDesc"></p>
+        <div class="fmeta" id="fMeta"></div>
+        <pre id="fPayload"></pre>
+      </div>
+    </div>
+  </div>
+</section>
+</div>
+<div class="view off" id="view-tech" inert>
+<header class="hero wrap" style="padding-bottom:8px">
+  <h1>The backend that runs it</h1>
+  <p class="lede">A hybrid stack on GKE. The orchestrator and domain agents are Python with Google ADK, where agent tooling moves fastest. The deterministic tool servers stay in Java and Spring Boot, close to the existing plan and claims APIs. A2A and MCP sit at the seams, so neither side depends on the other's language.</p>
+</header>
+
+<section style="border-top:0;padding-top:12px">
+  <div class="wrap">
+    <h2>Stack at a glance</h2>
+    <div class="layers" style="margin-top:18px">
+      <div class="layer"><div class="layer-name">Entry<small>REST and SSE</small></div><div class="chips"><span class="chip"><b>Apigee</b> gateway, OAuth2, quotas</span><span class="chip"><b>explain-api</b> Spring Boot, streams answers over SSE</span></div></div>
+      <div class="link"></div>
+      <div class="layer orchestr"><div class="layer-name">Orchestration<small>Python, Google ADK</small></div><div class="chips"><span class="chip main"><b>orchestrator</b> ADK SequentialAgent graph</span><span class="chip">RemoteA2aAgent clients</span><span class="chip">asyncio fan-out with deadlines</span><span class="chip">Small model to understand, strong model to synthesize</span></div></div>
+      <div class="link"></div>
+      <div class="layer a2a"><div class="layer-name">Domain agents<small>Python, one ADK template, eight services</small></div><div class="chips"><span class="chip">Fixed investigate step, no model</span><span class="chip">Small model only to phrase findings</span><span class="chip">ADK MCP toolset</span><span class="chip">Exposed as A2A servers</span></div></div>
+      <div class="link"></div>
+      <div class="layer"><div class="layer-name">MCP tool servers<small>Java, Spring Boot</small></div><div class="chips"><span class="chip">Spring AI MCP server, Streamable HTTP</span><span class="chip">cel-java evaluator</span><span class="chip">Plan setup API client with JSON pointer projection</span><span class="chip">Resilience4j and Caffeine</span></div></div>
+      <div class="link"></div>
+      <div class="layer"><div class="layer-name">Data and messaging<small>Managed services</small></div><div class="chips"><span class="chip"><b>MongoDB Atlas</b> rule cards, vector search, change streams</span><span class="chip"><b>Memorystore</b> Redis or Valkey</span><span class="chip"><b>Pub/Sub</b> batch and events</span><span class="chip"><b>BigQuery</b> explanation records and metrics</span></div></div>
+      <div class="link"></div>
+      <div class="layer"><div class="layer-name">Platform<small>Shared with other workloads</small></div><div class="chips"><span class="chip">GKE</span><span class="chip">Cloud Service Mesh, mTLS</span><span class="chip">Workload Identity</span><span class="chip">Secret Manager, KMS</span><span class="chip">KEDA</span><span class="chip">OpenTelemetry</span><span class="chip">Enterprise LLM gateway</span><span class="chip">GitHub Actions, Argo CD</span></div></div>
+    </div>
+  </div>
+</section>
+
+
+<section id="split">
+  <div class="wrap">
+    <h2>Why Python for agents and Java for tools</h2>
+    <p class="prose">The split follows how often each part changes and what it depends on. Agent logic is prompts, routing and evaluation, and it changes weekly. Tool servers are integrations with systems of record, and they change rarely.</p>
+    <div class="grid3">
+      <div><h3>Agent tooling lands in Python first</h3><p>ADK, LangGraph, evaluation frameworks and tracing tools ship features in Python before anything else. Agent behaviour is where iteration speed pays off.</p></div>
+      <div><h3>ADK fits the platform</h3><p>Built-in A2A for calling and exposing agents, workflow agents for fixed graphs, LiteLLM for any approved model, and a straightforward path to GKE.</p></div>
+      <div><h3>Tools stay with the Java estate</h3><p>The plan slice, rule registry and evaluator wrap existing Java APIs, reuse the team's security and logging starters, and are throughput-bound rather than agent-shaped.</p></div>
+      <div><h3>MCP is the language boundary</h3><p>Agents only see typed tool schemas. Either side can be rewritten without the other noticing, and IDE assistants and SME tools reuse the same tools.</p></div>
+      <div><h3>The cost is two runtimes</h3><p>Two build pipelines, two base images and Python skills on the team. Shared service templates for each language keep the difference small.</p></div>
+      <div><h3>When to choose LangGraph instead</h3><p>If you want the flow as an explicit state graph with built-in checkpointing and replay of each run, LangGraph is the better fit. A2A still connects it to the same domain agents.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="model-calls">
+  <div class="wrap">
+    <h2>Where the models are called</h2>
+    <p class="prose">The orchestrator does call models, twice for a typical question. Everything that decides an outcome stays deterministic. Models understand the question and write the words.</p>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>Step</th><th>Runs in</th><th>Model</th><th>When it is called</th></tr></thead>
+        <tbody>
+          <tr><td><b>Snapshot and outcome tokens</b></td><td>Orchestrator</td><td>None</td><td>Always. Claim tools over MCP.</td></tr>
+          <tr><td><b>Understand the question</b></td><td>Orchestrator</td><td>Small</td><td>Free-text questions: extracts the claim, the ask (reason, cost, what-if, comparison) and any extra domains. Skipped when the caller sends a structured request.</td></tr>
+          <tr><td><b>Route to domains</b></td><td>Orchestrator</td><td>None</td><td>Always. Route table built from agent cards, plus domains named in the understood ask.</td></tr>
+          <tr><td><b>Find rules, fetch slices, evaluate</b></td><td>Domain agents</td><td>None</td><td>Always. A fixed tool sequence in code, never chosen by a model.</td></tr>
+          <tr><td><b>Phrase findings</b></td><td>Domain agents</td><td>Small, or none</td><td>Only when the rule's template cannot express the finding. Runs in parallel across agents.</td></tr>
+          <tr><td><b>Precedence and coverage check</b></td><td>Orchestrator</td><td>None</td><td>Always. Every outcome token must map to a finding.</td></tr>
+          <tr><td><b>Gap round</b></td><td>Orchestrator</td><td>Small</td><td>Only when an outcome is unexplained. Proposes more domains for one extra fan-out, never more than one round.</td></tr>
+          <tr><td><b>Synthesize the answer</b></td><td>Orchestrator</td><td>Strong</td><td>Always for interactive questions. Batch runs can use templates or the small model.</td></tr>
+          <tr><td><b>Follow-up turns</b></td><td>Orchestrator</td><td>Strong</td><td>Each further question in the conversation, reusing findings already gathered.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="grid3">
+      <div><h3>A fixed graph, not an open loop</h3><p>The orchestrator runs the same steps in the same order every time. A model never decides which tool to call next, so it cannot skip the coverage check or invent a path.</p></div>
+      <div><h3>Bounded cost and latency</h3><p>Two orchestrator calls and at most one small call per agent, all known in advance. Prompt caching on the shared instructions cuts the cost further.</p></div>
+    </div>
+  </div>
+</section>
+<section>
+  <div class="wrap">
+    <h2>Choices and the reasons for them</h2>
+    <p class="prose">Each row is a decision worth recording in the design doc. The alternative column is what to fall back to if an enterprise standard says otherwise.</p>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>Concern</th><th>Choice</th><th>Why it fits Madhava</th><th>Alternative</th></tr></thead>
+        <tbody>
+          <tr><td><b>Orchestrator and agents</b></td><td>Python 3.12+, Google ADK</td><td>Workflow agents for a fixed graph, built-in A2A, any approved model through LiteLLM, and the Python evaluation ecosystem.</td><td>LangGraph for explicit state graphs and checkpointing; Spring AI if the team must stay on one language</td></tr>
+          <tr><td><b>Tool servers</b></td><td>Java 21+, Spring Boot, Spring AI MCP server</td><td>Deterministic and throughput-bound, next to existing Java APIs. Reuses the team's security, logging and config starters.</td><td>Python FastMCP, at the cost of a second plan API client</td></tr>
+          <tr><td><b>Agent to agent</b></td><td>A2A protocol through ADK: RemoteA2aAgent as client, agents exposed as A2A servers</td><td>Open standard with agent cards, a task lifecycle and streaming. Domain teams can ship agents independently, in any language.</td><td>A2A Python SDK directly; plain REST loses discovery and task semantics</td></tr>
+          <tr><td><b>Agent to tool</b></td><td>MCP over Streamable HTTP, from the ADK MCP toolset to Spring AI MCP servers</td><td>The seam between Python and Java. One tool definition serves every agent, plus IDE assistants and SME tooling.</td><td>Shared REST client libraries per language</td></tr>
+          <tr><td><b>Parallel fan-out</b></td><td>Custom ADK agent with asyncio and a per-agent timeout</td><td>Routing picks a different set of domains for each claim, so the fan-out must be dynamic. Late agents become pending findings.</td><td>ADK ParallelAgent when every domain always runs; LangGraph Send API</td></tr>
+          <tr><td><b>Rule conditions</b></td><td>CEL via cel-java in one evaluator service, compiled once per rule version</td><td>Sandboxed, typed and fast. One engine everywhere means Python and Java never disagree on an edge case. Agents send all candidate rules in one batched call.</td><td>Drools for complex chaining, JSON Logic for simplicity</td></tr>
+          <tr><td><b>Rule store</b></td><td>MongoDB Atlas with Atlas Vector Search and change streams</td><td>Cards are documents. Exact trigger lookup and semantic search live in one store. Change streams push updates to agents.</td><td>PostgreSQL with pgvector</td></tr>
+          <tr><td><b>Caching</b></td><td>Memorystore for Redis or Valkey, plus Caffeine in each pod</td><td>Plan slices and explanations keyed by version, so entries never go stale, they simply stop being asked for.</td><td>Local cache only, which lowers hit rates as pods scale</td></tr>
+          <tr><td><b>Batch and events</b></td><td>Pub/Sub, autoscaled workers via KEDA</td><td>Backlog-driven scaling, dead-letter topics, replay.</td><td>Kafka where it is already the enterprise standard</td></tr>
+          <tr><td><b>Audit and analytics</b></td><td>BigQuery for explanation records, match rates and gap rates</td><td>SQL over every explanation for SMEs, auditors and dashboards.</td><td>MongoDB collection with an analytics export</td></tr>
+          <tr><td><b>Model access</b></td><td>Enterprise LLM gateway in front of approved endpoints</td><td>Quotas, small versus strong model routing, PHI controls, fallback and cost tracking in one place.</td><td>Direct provider SDKs per service</td></tr>
+          <tr><td><b>Observability</b></td><td>OpenTelemetry in Python and Java plus ADK tracing, exported to Cloud Trace and the existing APM such as AppDynamics</td><td>One trace across A2A and MCP hops. Fits the current monitoring estate.</td><td>Vendor agent only</td></tr>
+          <tr><td><b>Delivery</b></td><td>GitHub Actions, Artifact Registry, Helm, Argo CD, canary per agent</td><td>Each agent and tool server releases on its own. Rules follow a separate pipeline.</td><td>Cloud Build and Cloud Deploy</td></tr>
+          <tr><td><b>Testing</b></td><td>pytest and ADK evaluation sets for agents; JUnit, Testcontainers and WireMock for tool servers; A2A and MCP contract tests; golden-claim replay</td><td>Catches broken paths, contract drift and accuracy regressions before release.</td><td>Shared integration environment only</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Services to build</h2>
+    <p class="prose">Eighteen deployables, eight of them built from one shared Python agent template. Teams own the agents for their domain; a platform team owns the shared tool servers.</p>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>Service</th><th>Kind</th><th>Responsibility</th><th>Scales on</th><th>Calls</th></tr></thead>
+        <tbody>
+          <tr><td><code>explain-api</code></td><td>Java, Spring Boot</td><td>Entry point, authorization, explanation cache check, SSE streaming to clients</td><td>Requests per second</td><td>orchestrator, Redis</td></tr>
+          <tr><td><code>orchestrator</code></td><td>Python, Google ADK</td><td>Question understanding, routing, A2A fan-out with deadlines, coverage check, synthesis, audit write</td><td>In-flight explanations</td><td>agents, claim tools, LLM gateway, BigQuery</td></tr>
+          <tr><td><code>agent-&lt;domain&gt;</code> ×8</td><td>Python, ADK, A2A server</td><td>Find rules, fetch slices, evaluate, return findings for one domain</td><td>In-flight A2A tasks</td><td>MCP tool servers, LLM gateway</td></tr>
+          <tr><td><code>mcp-claim-tools</code></td><td>Java MCP server</td><td>Claim snapshot, response, outcome tokens, claim history</td><td>CPU</td><td>Claims history</td></tr>
+          <tr><td><code>mcp-plan-slice</code></td><td>Java MCP server</td><td>Resolve plan version by date of service, project only requested paths, cache, coalesce</td><td>CPU and cache misses</td><td>Plan setup API, Redis</td></tr>
+          <tr><td><code>mcp-rule-registry</code></td><td>Java MCP server</td><td>Trigger lookup, vector search, version resolution, rule diffs</td><td>CPU</td><td>MongoDB Atlas</td></tr>
+          <tr><td><code>mcp-rule-evaluator</code></td><td>Java MCP server</td><td>Batched CEL evaluation with evidence, for agents, what-if questions and SME tools</td><td>CPU</td><td>None</td></tr>
+          <tr><td><code>rule-publisher</code></td><td>Java job</td><td>Publish merged rule cards as new versions, close previous effective dates, refresh embeddings</td><td>On merge</td><td>MongoDB Atlas</td></tr>
+          <tr><td><code>field-catalog-sync</code></td><td>Java scheduled job</td><td>Pull the plan API schema, diff it, open a pull request when paths change</td><td>Nightly</td><td>Plan setup API, GitHub</td></tr>
+          <tr><td><code>batch-api</code> and <code>batch-worker</code></td><td>Java, Spring Boot</td><td>Accept claim lists, enqueue, run explanations at low priority, write results</td><td>Queue backlog via KEDA</td><td>Pub/Sub, orchestrator, BigQuery</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Where everything runs</h2>
+    <p class="prose">One GKE cluster per environment, separated by namespace. Managed data services connect over private networking. Existing enterprise systems stay where they are and are reached only through the tool servers.</p>
+    <div class="topo">
+      <div class="cluster">
+        <div class="cl-head">GKE cluster, per environment</div>
+        <div class="ns-grid">
+          <div class="ns"><b>madhava-edge</b><span>explain-api</span><span>batch-api</span></div>
+          <div class="ns"><b>madhava-orchestration</b><span>orchestrator (Python)</span><span>batch-worker (Java)</span></div>
+          <div class="ns a2a"><b>madhava-agents</b><span>Python, ADK</span><span>agent-eligibility</span><span>agent-coverage</span><span>agent-um</span><span>agent-dur</span><span>agent-pricing</span><span>agent-network</span><span>agent-cob</span><span>agent-history</span></div>
+          <div class="ns"><b>madhava-tools</b><span>Java, Spring Boot</span><span>mcp-claim-tools</span><span>mcp-plan-slice</span><span>mcp-rule-registry</span><span>mcp-rule-evaluator</span></div>
+          <div class="ns"><b>madhava-jobs</b><span>rule-publisher</span><span>field-catalog-sync</span></div>
+        </div>
+        <div class="cl-foot">Service mesh with mTLS, network policies per namespace, Workload Identity per service account, KEDA and HPA autoscaling</div>
+      </div>
+      <div class="ext">
+        <div class="ext-box"><b>Managed services</b><span>Apigee</span><span>MongoDB Atlas over Private Service Connect</span><span>Memorystore</span><span>Pub/Sub</span><span>BigQuery</span><span>Secret Manager and KMS</span><span>Enterprise LLM gateway</span></div>
+        <div class="ext-box"><b>Existing enterprise systems</b><span>Plan setup API</span><span>Claims history store</span><span>Identity provider</span><span>APM and log platform</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Protocols at each seam</h2>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>From and to</th><th>Protocol</th><th>Contract</th><th>Timeout and retry</th></tr></thead>
+        <tbody>
+          <tr><td>Client to explain-api</td><td>HTTPS REST, answer streamed over SSE</td><td>OpenAPI: <code>POST /explanations</code>, <code>GET /explanations/{id}/events</code></td><td>Client-side reconnect with last event ID</td></tr>
+          <tr><td>Orchestrator to domain agents</td><td>A2A over HTTPS, streaming messages</td><td>Agent cards, task with context reference data part, finding artifact as JSON Schema</td><td>Per-task deadline, no retry inside the deadline, pending finding on timeout</td></tr>
+          <tr><td>Agents to tool servers</td><td>MCP over Streamable HTTP</td><td>Typed tool schemas: <code>find_rules</code>, <code>get_plan_slice</code>, <code>evaluate_rule</code>, <code>get_claim</code></td><td>500 ms, one retry on idempotent reads</td></tr>
+          <tr><td>Plan slice to plan setup API</td><td>Existing REST</td><td>Field catalog maps paths to JSON pointers</td><td>Circuit breaker, request coalescing, stale-on-error from cache</td></tr>
+          <tr><td>Rule publisher to agents</td><td>MongoDB change streams</td><td>Rule card JSON Schema with version and effective dates</td><td>Resume tokens, full reload on gap</td></tr>
+          <tr><td>Batch API to workers</td><td>Pub/Sub</td><td>Message per claim with job ID and rules-as-of</td><td>Exponential backoff, dead-letter after five attempts</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>What the core code looks like</h2>
+    <p class="prose">Sketches, not production code. Pin ADK, A2A and Spring AI versions to your approved list; the APIs are moving quickly.</p>
+    <div class="two">
+      <div class="codecard">
+        <h3>Orchestrator as an ADK graph, Python</h3>
+        <p>A fixed sequence. Only two steps are model calls; the rest are plain code.</p>
+<pre>understand = LlmAgent(
+    name="understand", model=SMALL_MODEL,
+    instruction=UNDERSTAND_PROMPT,
+    output_schema=Ask, output_key="ask")
+
+synthesize = LlmAgent(
+    name="synthesize", model=STRONG_MODEL,
+    instruction=SYNTHESIZE_PROMPT,
+    output_key="answer")
+
+orchestrator = SequentialAgent(
+    name="claim_explainer",
+    sub_agents=[
+        Snapshot(),       # MCP get_claim, no model
+        understand,       # model call 1, small
+        Route(),          # route table, no model
+        FanOut(),         # A2A in parallel, no model
+        CoverageCheck(),  # precedence, gaps, one gap round
+        synthesize,       # model call 2, strong
+    ])</pre>
+      </div>
+      <div class="codecard">
+        <h3>Dynamic fan-out with deadlines, Python</h3>
+        <p>Only the routed domains run. A late agent becomes a pending finding instead of a failure.</p>
+<pre>class FanOut(BaseAgent):
+    async def _run_async_impl(self, ctx):
+        state = ctx.session.state
+        ref, domains = state["context_ref"], state["domains"]
+
+        async def ask(domain):
+            try:
+                return await asyncio.wait_for(
+                    agents[domain].explain(ref),  # A2A
+                    timeout=4.0)
+            except Exception as ex:
+                return Finding.pending(domain, str(ex))
+
+        findings = []
+        for done in asyncio.as_completed(
+                [ask(d) for d in domains]):
+            f = await done
+            findings.append(f)
+            yield progress_event(self.name, f)  # SSE
+        yield Event(author=self.name,
+            actions=EventActions(state_delta={
+                "findings": [f.model_dump()
+                             for f in findings]}))</pre>
+      </div>
+      <div class="codecard">
+        <h3>Domain agent served over A2A, Python</h3>
+        <p>The tool sequence is fixed in code. The model only turns evidence into a sentence.</p>
+<pre>rule_tools = McpToolset(
+    connection_params=StreamableHTTPConnectionParams(
+        url="https://mcp-tools.internal/mcp"),
+    tool_filter=["find_rules", "get_plan_slice",
+                 "evaluate_rules"])
+
+um_agent = SequentialAgent(
+    name="um_agent",
+    sub_agents=[
+        Investigate(domain="utilization_mgmt",
+                    tools=rule_tools),  # no model
+        LlmAgent(name="phrase", model=SMALL_MODEL,
+                 instruction=PHRASE_PROMPT,
+                 output_key="findings"),
+    ])
+
+app = to_a2a(um_agent)  # agent card and A2A endpoint</pre>
+      </div>
+      <div class="codecard">
+        <h3>Plan slice as an MCP tool, Java</h3>
+        <p>Agents never see the 12k-field payload, only the paths their rules read.</p>
+<pre>@Component
+class PlanSliceTools {
+  @Tool(description = """
+    Return only the requested plan setup paths
+    for a plan, resolved by date of service""")
+  PlanSlice getPlanSlice(String planId,
+      List&lt;String&gt; paths, LocalDate dos) {
+    var version = planVersions.resolve(planId, dos);
+    var key = SliceKey.of(planId, version, paths);
+    return slices.get(key, () -&gt;
+      planSetupApi.fetch(planId, version)
+        .project(catalog.pointersFor(paths)));
+  }
+}</pre>
+      </div>
+      <div class="codecard">
+        <h3>Rule evaluation with CEL, Java</h3>
+        <p>Compiled once per rule version and cached. Evidence records every input value used.</p>
+<pre>CelCompiler compiler = CelCompilerFactory
+  .standardCelCompilerBuilder()
+  .addVar("plan", SimpleType.DYN)
+  .addVar("claim", SimpleType.DYN)
+  .build();
+CelRuntime runtime = CelRuntimeFactory
+  .standardCelRuntimeBuilder().build();
+
+Program program = programs.computeIfAbsent(
+  rule.idAndVersion(), k -&gt; runtime.createProgram(
+    compiler.compile(rule.condition()).getAst()));
+
+boolean fired = (Boolean) program.eval(Map.of(
+  "plan", slice.values(), "claim", claim.values()));
+return Finding.of(rule, fired,
+  Evidence.from(rule.reads(), slice, claim));</pre>
+      </div>
+      <div class="codecard">
+        <h3>Rule lookup by trigger and date, MongoDB</h3>
+        <p>Exact triggers first. Vector search only when the question is free text.</p>
+<pre>// exact: reject code, domain, in force on DOS
+db.ruleCards.find({
+  domain: "utilization_mgmt",
+  "triggers.rejectCodes": "75",
+  "effective.from": { $lte: dos },
+  $or: [{ "effective.to": null },
+        { "effective.to": { $gt: dos } }]
+})
+
+// semantic fallback, same date filter
+db.ruleCards.aggregate([{ $vectorSearch: {
+  index: "rule_text", path: "embedding",
+  queryVector: embed(question),
+  numCandidates: 100, limit: 8,
+  filter: { domain: "pricing",
+    "effective.from": { $lte: dos } } } }])</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Targets to design against</h2>
+    <p class="prose">Starting values for the non-functional requirements. Confirm them with the consuming teams before sizing.</p>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>Requirement</th><th>Starting target</th><th>How the design meets it</th></tr></thead>
+        <tbody>
+          <tr><td>Interactive latency</td><td>First words under 3 s, full answer under 6 s at p95</td><td>Parallel fan-out, streaming, cached slices, small models in agents</td></tr>
+          <tr><td>Availability</td><td>99.9% for interactive explanations</td><td>Multi-zone GKE, partial answers on agent timeout, stale-on-error plan slices</td></tr>
+          <tr><td>Rule propagation</td><td>Live in agents within one minute of publish</td><td>Change streams and versioned cache keys</td></tr>
+          <tr><td>Batch throughput</td><td>Overnight runs of large claim sets without affecting interactive traffic</td><td>Separate priority lane, KEDA scaling, plan API rate cap</td></tr>
+          <tr><td>Reproducibility</td><td>Any past answer can be replayed exactly</td><td>Explanation record with snapshot reference, plan version, rule versions and inputs</td></tr>
+          <tr><td>Data protection</td><td>Minimum necessary PHI, encrypted everywhere, full audit</td><td>Context references, scoped tools, mTLS, KMS, redacted telemetry</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+</div>
+
+<footer>
+  <div class="wrap">Madhava claim explainability architecture. Agent names, technology versions, reject code mappings, plan paths and timings are illustrative and should be replaced with the values from your plan setup schema and adjudication standards.</div>
+</footer>
+
+<script>
+(function(){
+  var ORCH_TRIAGE = 0.7, SYNTH = 1.5;
+  var agents = [
+    {name:"Eligibility and member", d:1.6, s:"pass",    note:"Member active on 14 Sep 2026"},
+    {name:"Formulary and coverage", d:2.4, s:"fired",   note:"Drug sits on Tier 4, non-preferred"},
+    {name:"Utilization management", d:3.1, s:"fired",   note:"Tier 4 requires PA, none on file"},
+    {name:"Clinical DUR",           d:2.0, s:"pass",    note:"No DUR conflicts"},
+    {name:"Pricing and cost share", d:2.7, s:"fired",   note:"What-if: 25% coinsurance, capped"},
+    {name:"Pharmacy network",       d:1.3, s:"pass",    note:"Retail in network"},
+    {name:"COB and other payer",    d:1.1, s:"skipped", note:"No other coverage"}
+  ];
+  var seqTotal = ORCH_TRIAGE + agents.reduce(function(a,b){return a+b.d},0) + SYNTH;
+  var SPEED = 0.38; // seconds of animation per simulated second
+  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  var gantt = document.getElementById("gantt");
+  var rows = [];
+  function addRow(label, cls){
+    var l = document.createElement("div"); l.className = "lbl" + (cls==="orch"?" orch":""); l.textContent = label;
+    var t = document.createElement("div"); t.className = "track";
+    var b = document.createElement("div"); b.className = "bar " + cls; t.appendChild(b);
+    gantt.appendChild(l); gantt.appendChild(t);
+    return b;
+  }
+  var triBar = addRow("Triage and routing","orch");
+  agents.forEach(function(a){ a.bar = addRow(a.name, a.s); });
+  var synBar = addRow("Synthesis","orch");
+
+  var clock = document.getElementById("clock");
+  var answer = document.getElementById("answer");
+  var bPar = document.getElementById("runPar"), bSeq = document.getElementById("runSeq");
+  var timer = null;
+
+  function place(bar, start, dur){
+    bar.style.transition = "none";
+    bar.style.transform = "scaleX(0)";
+    bar.style.left = (start/seqTotal*100) + "%";
+    bar.style.width = (dur/seqTotal*100) + "%";
+  }
+  function grow(bar, start, dur){
+    if (reduce){ bar.style.transform = "scaleX(1)"; return; }
+    bar.style.transition = "transform " + (dur*SPEED) + "s linear " + (start*SPEED) + "s";
+    bar.style.transform = "scaleX(1)";
+  }
+
+  function run(parallel){
+    bPar.disabled = bSeq.disabled = true;
+    answer.className = "answer idle";
+    answer.textContent = parallel ? "Agents are investigating at the same time..." : "Agents are investigating one after another...";
+    var plan = [], t = ORCH_TRIAGE, maxEnd = ORCH_TRIAGE;
+    plan.push([triBar, 0, ORCH_TRIAGE]);
+    agents.forEach(function(a){
+      var start = parallel ? ORCH_TRIAGE : t;
+      plan.push([a.bar, start, a.d]);
+      t = start + a.d; maxEnd = Math.max(maxEnd, t);
+    });
+    var synStart = parallel ? maxEnd : t;
+    plan.push([synBar, synStart, SYNTH]);
+    var total = synStart + SYNTH;
+
+    plan.forEach(function(p){ place(p[0], p[1], p[2]); });
+    void gantt.offsetWidth;
+    plan.forEach(function(p){ grow(p[0], p[1], p[2]); });
+
+    var t0 = performance.now();
+    clearInterval(timer);
+    function finish(){
+      clearInterval(timer);
+      clock.firstChild.nodeValue = total.toFixed(1) + " s";
+      showAnswer(parallel, total);
+      bPar.disabled = bSeq.disabled = false;
+    }
+    if (reduce){ finish(); return; }
+    timer = setInterval(function(){
+      var sim = (performance.now()-t0)/1000/SPEED;
+      if (sim >= total){ finish(); return; }
+      clock.firstChild.nodeValue = sim.toFixed(1) + " s";
+    }, 50);
+  }
+
+  function showAnswer(parallel, total){
+    answer.className = "answer";
+    answer.innerHTML =
+      "<p><b>Primary reason:</b> the drug is on Tier 4 of this plan, and Tier 4 drugs require prior authorization. No authorization was on file on 14 Sep 2026, so the claim rejected with code 75.</p>" +
+      "<p><b>If approved:</b> it would price at the Tier 4 coinsurance of 25%, subject to the plan's per-fill cap.</p>" +
+      "<p class='cite'>Evidence: UM-PA-TIER4 v3 (confirmed), FC-TIER-MAP v7 (confirmed), PR-COINS-T4 v5 (what-if). Eligibility, DUR and network checked with no issue. All outcome tokens explained. " +
+      (parallel ? "Finished in " + total.toFixed(1) + " s in parallel." : "Finished in " + total.toFixed(1) + " s one by one.") + "</p>";
+  }
+
+  bPar.addEventListener("click", function(){ run(true); });
+  bSeq.addEventListener("click", function(){ run(false); });
+})();
+</script>
+<script>
+(function(){
+  /* ---------- view routing ---------- */
+  var views = {"explain":"view-overview","end-to-end":"view-flow","technology":"view-tech"};
+  var links = document.querySelectorAll(".topnav a");
+  function show(hash, fromNav){
+    var key = (hash||"").replace("#","");
+    var target = views[key];
+    var inOverview = !target;
+    if (!target) target = "view-overview";
+    Object.keys(views).forEach(function(k){
+      var el = document.getElementById(views[k]);
+      var on = views[k] === target;
+      el.classList.toggle("off", !on);
+      if (on) el.removeAttribute("inert"); else el.setAttribute("inert","");
+    });
+    links.forEach(function(a){
+      var on = views[a.getAttribute("href").slice(1)] === target;
+      if (on) a.setAttribute("aria-current","page"); else a.removeAttribute("aria-current");
+    });
+    if (fromNav || !inOverview || !key) window.scrollTo(0,0);
+    else { var sec = document.getElementById(key); if (sec) sec.scrollIntoView(); }
+  }
+  links.forEach(function(a){
+    a.addEventListener("click", function(e){
+      e.preventDefault();
+      var h = a.getAttribute("href");
+      try { history.pushState(null,"",h); } catch(err) {}
+      show(h, true);
+    });
+  });
+  window.addEventListener("popstate", function(){ show(location.hash, true); });
+  window.addEventListener("hashchange", function(){ show(location.hash, false); });
+  show(location.hash, false);
+
+  /* ---------- flow engine ---------- */
+  function N(id,x,y,t,s,k,w,h){ return {id:id,x:x,y:y,t:t,s:s,k:k,w:w||130,h:h||52}; }
+  var AG = function(id,y,t){ return N(id,530,y,t,"A2A server","agent",162,46); };
+
+  var S = {};
+  S.question = {
+    nodes:[
+      N("user",12,284,"Care-team console","Asks why","person",143),
+      N("gw",175,284,"explain-api","Apigee, SSE","tool"),
+      N("cache",175,150,"Explanation cache","Redis","data",140),
+      N("audit",175,40,"Audit store","BigQuery","data"),
+      N("orch",335,270,"Orchestrator","Python, Google ADK","tool",140,80),
+      N("synth",335,120,"Synthesizer","In orchestrator, strong model","llm",160),
+      N("ctools",335,430,"Claim tools","MCP server","tool",140),
+      N("claims",335,530,"Claims history","System of record","data",140),
+      AG("elig",50,"Eligibility"), AG("cov",112,"Formulary, coverage"), AG("um",174,"Utilization mgmt"),
+      AG("dur",236,"Clinical DUR"), AG("price",298,"Pricing, cost share"), AG("net",360,"Pharmacy network"), AG("cob",422,"COB, other payer"),
+      N("llm",530,540,"LLM gateway","Small and strong models","llm",162),
+      N("reg",722,60,"Rule registry","MCP server","tool",134),
+      N("slice",722,220,"Plan slice service","MCP server","tool",134),
+      N("eval",722,380,"Rule evaluator","CEL","tool",134),
+      N("mongo",876,60,"Rule cards","MongoDB Atlas","data",118),
+      N("redis",876,170,"Slice cache","Redis","data",118),
+      N("plan",876,270,"Plan setup API","~12k fields","data",118)
+    ],
+    groups:[{id:"agents",label:"Domain agents, in parallel",members:["elig","cov","um","dur","price","net","cob"]}],
+    steps:[
+      {t:"The question arrives", n:["user","gw"], e:[["user","gw"]], ms:"t = 0",
+       tech:["HTTPS","OAuth2","Apigee"],
+       d:"A care-team agent asks why the claim rejected and what it would cost if approved. The request carries the claim ID and the user's entitlements. The answer will stream back over the same connection.",
+       p:{"POST":"/explanations","body":{"claimId":"RX-2026-0914-77231","question":"Why was this rejected, and what would it cost if approved?","rulesAsOf":"dateOfService","channel":"care-team"}}},
+      {t:"Check for a cached explanation", n:["gw","cache"], e:[["gw","cache"]], ms:"+60 ms",
+       tech:["Redis","Versioned key"],
+       d:"If anyone asked about this claim under the same rule set, the stored answer is returned immediately. The key includes the rule set hash, so any rule change makes old entries unreachable.",
+       p:{"GET":"expl:RX-2026-0914-77231:dos:rs-9f31c2","result":"miss"}},
+      {t:"Start the investigation", n:["gw","orch"], e:[["gw","orch"]], ms:"+70 ms",
+       tech:["REST","OpenTelemetry trace"],
+       d:"The orchestrator creates an explanation ID and a trace ID that will follow every A2A task and MCP call in this request.",
+       p:{"explanationId":"ex-5c1e","traceId":"4bf92f3577b34da6a3ce929d0e0e4736","deadlineMs":4000}},
+      {t:"Snapshot the claim once", n:["orch","ctools","claims"], e:[["orch","ctools"],["ctools","claims"]], ms:"+300 ms",
+       tech:["MCP get_claim","Context packet"],
+       d:"Claim tools fetch the claim and its response a single time and store a snapshot. The orchestrator turns the response into outcome tokens: the facts the final answer must explain.",
+       p:{"contextRef":"ctx://ex-5c1e","dos":"2026-09-14","planId":"PLN-COMM-4T","planVersion":"2026.07","outcomeTokens":["reject:75"],"askedFor":["reason","cost_if_approved"]}},
+      {t:"Understand the question", n:["orch","llm"], e:[["orch","llm"]], ms:"+400 ms",
+       tech:["Small model","Structured output","Orchestrator model call 1"],
+       d:"The question is free text, so a small model turns it into a structured ask: what to explain and what to price. It does not choose agents or tools. A caller that sends a structured request skips this call.",
+       p:{"model":"small","input":"Why was this rejected, and what would it cost if approved?","output":{"explain":["reject:75"],"whatIf":"approved","extraDomains":["pricing"],"compare":null}}},
+      {t:"Route to domains", n:["orch"], e:[], ms:"+20 ms",
+       tech:["Route table","Agent cards"],
+       d:"No model here. A route table built from agent cards maps reject 75 to utilization management, and the understood ask adds pricing. Cheap neighbouring domains are added speculatively so nothing waits on a second round.",
+       p:{"primary":["utilization_mgmt","pricing"],"related":["formulary_coverage"],"speculative":["eligibility","clinical_dur","network","cob"],"router":"table"}},
+      {t:"Fan out over A2A", n:["orch","elig","cov","um","dur","price","net","cob"], g:["agents"],
+       e:[["orch","elig"],["orch","cov"],["orch","um"],["orch","dur"],["orch","price"],["orch","net"],["orch","cob"]], ms:"+40 ms",
+       tech:["A2A message/stream","asyncio","Deadline 4 s"],
+       d:"Seven tasks start at the same moment. Each carries a context reference instead of a copy of PHI, and the pricing task asks for a what-if price as if the claim had been approved.",
+       p:{"jsonrpc":"2.0","method":"message/stream","params":{"message":{"role":"user","parts":[{"kind":"data","data":{"contextRef":"ctx://ex-5c1e","task":"explain_outcome","mode":"what_if_approved","deadlineMs":4000}}],"messageId":"m-77"},"metadata":{"traceparent":"00-4bf92f35...-01"}}}},
+      {t:"Each agent finds its candidate rules", n:["reg","mongo"], g:["agents"], e:[["agents","reg"],["reg","mongo"]], ms:"+40 ms",
+       tech:["MCP find_rules","Effective on DOS"],
+       d:"Agents search only their own domain. Exact trigger lookup comes first, vector search only for free-text questions. Only rule versions in force on 14 Sep 2026 come back.",
+       p:{"tool":"find_rules","args":{"domain":"utilization_mgmt","rejectCodes":["75"],"dos":"2026-09-14"},"result":[{"id":"UM-PA-TIER4","version":3},{"id":"UM-PA-SPECIALTY","version":2}]}},
+      {t:"Fetch only the plan paths each rule reads", n:["slice","redis","plan"], g:["agents"], e:[["agents","slice"],["slice","redis"],["slice","plan"]], ms:"+20 ms cached",
+       tech:["MCP get_plan_slice","JSON pointer projection"],
+       d:"The rule card lists its plan paths, so the plan slice service returns a handful of values instead of 12k fields. Most calls are cache hits; misses go to the plan setup API through a circuit breaker.",
+       p:{"tool":"get_plan_slice","args":{"planId":"PLN-COMM-4T","dos":"2026-09-14","paths":["benefit.tier.map[gpi]","benefit.pa.required[tier]"]},"result":{"planVersion":"2026.07","values":{"benefit.tier.map[gpi]":4,"benefit.pa.required[4]":true},"cache":"hit"}}},
+      {t:"Evaluate the rules deterministically", n:["eval"], g:["agents"], e:[["agents","eval"]], ms:"< 10 ms",
+       tech:["CEL","Evidence capture"],
+       d:"The evaluator runs each rule's condition on real values and records every input it used. Whether a rule fired is never decided by a model.",
+       p:{"rule":"UM-PA-TIER4 v3","condition":"plan.tier == 4 && plan.paRequired && !claim.paOnFile","inputs":{"plan.tier":4,"plan.paRequired":true,"claim.paOnFile":false},"fired":true}},
+      {t:"Agents phrase their findings", n:["llm"], g:["agents"], e:[["agents","llm"]], ms:"+1.5 to 3 s",
+       tech:["Small model","Templates first"],
+       d:"Where a rule template is enough, no model is called. Otherwise a small, fast model writes one sentence per finding from the evidence. This is the slowest part of each agent.",
+       p:{"model":"small","input":"template + evidence","output":"Tier 4 drugs need prior authorization on this plan; none was on file."}},
+      {t:"Findings stream back as they finish", n:["synth"], g:["agents"], e:[["agents","synth"]], ms:"slowest agent ≈ 3.2 s",
+       tech:["A2A artifacts","SSE progress"],
+       d:"Fast agents report first and the user sees progress. An agent that misses the deadline returns a pending finding instead of blocking the answer.",
+       p:[{"domain":"utilization_mgmt","status":"fired","rule":"UM-PA-TIER4 v3","explains":["reject:75"],"confidence":"confirmed"},{"domain":"formulary_coverage","status":"fired","rule":"FC-TIER-MAP v7","confidence":"confirmed"},{"domain":"pricing","status":"what_if","rule":"PR-COINS-T4 v5","value":"25% coinsurance, per-fill cap"},{"domain":"eligibility","status":"not_fired"},{"domain":"cob","status":"not_applicable"}]},
+      {t:"Synthesize and check coverage", n:["synth","llm"], e:[["synth","llm"]], ms:"+1.5 s, streamed",
+       tech:["Precedence order","Coverage check","Orchestrator model call 2, strong"],
+       d:"Findings are ordered by adjudication precedence and every outcome token is checked. Here reject 75 is explained by a confirmed finding, so there are no gaps and no extra round. If a gap remained, a small model could propose more domains for one further fan-out. The strong model then writes the final answer, citing rule IDs and values.",
+       p:{"outcomeTokens":{"reject:75":"UM-PA-TIER4 v3"},"gaps":[],"primary":"UM-PA-TIER4","supporting":["FC-TIER-MAP"],"whatIf":"PR-COINS-T4"}},
+      {t:"Answer, record and cache", n:["synth","gw","user","audit","cache"], e:[["synth","gw"],["gw","user"],["synth","audit"],["gw","cache"]], ms:"total ≈ 5.5 s",
+       tech:["SSE","BigQuery","Replayable record"],
+       d:"The answer streams to the console. The full record, with snapshot reference, plan version, rule versions and inputs, is written for audit and replay, and the answer is cached for the next person who asks.",
+       p:{"event":"answer","data":{"primary":"Tier 4 drug requires prior authorization; none on file on 14 Sep 2026, so the claim rejected with 75.","ifApproved":"25% Tier 4 coinsurance, subject to the per-fill cap.","evidence":["UM-PA-TIER4 v3","FC-TIER-MAP v7","PR-COINS-T4 v5"],"confidence":"confirmed"}}}
+    ]
+  };
+
+  S.rules = {
+    nodes:[
+      N("sme",20,264,"SME author","Edits a rule card","person"),
+      N("git",180,264,"Rule repo","GitHub pull request","tool"),
+      N("ci",340,264,"CI pipeline","GitHub Actions","tool"),
+      N("cat",340,100,"Field catalog","Path check","data"),
+      N("gold",340,430,"Golden replay","Match rate diff","tool"),
+      N("rev",500,264,"Owner review","CODEOWNERS","person"),
+      N("pub",660,264,"rule-publisher","Versioned write","tool"),
+      N("mongo",825,264,"Rule cards","MongoDB Atlas","data",150),
+      N("vec",825,100,"Vector index","Atlas Vector Search","data",150),
+      N("agents",825,430,"Domain agents","In-memory rules","agent",150),
+      N("xc",660,530,"Explanation cache","Old keys unused","data",150)
+    ],
+    groups:[],
+    steps:[
+      {t:"An SME changes a rule", n:["sme","git"], e:[["sme","git"]], ms:"day 0",
+       tech:["Git-first authoring","JSON or YAML card"],
+       d:"The plan now also requires PA for specialty-tier drugs filled at retail. The SME edits the rule card in a branch and opens a pull request with the source policy reference.",
+       p:{"id":"UM-PA-TIER4","version":4,"effective":{"from":"2026-11-01"},"condition":"(plan.tier == 4 || plan.specialty) && plan.paRequired && !claim.paOnFile","sourceDoc":"UM policy 4.3"}},
+      {t:"CI validates the card", n:["git","ci","cat"], e:[["git","ci"],["ci","cat"]], ms:"~2 min",
+       tech:["JSON Schema","CEL compile","Path check"],
+       d:"The card must match the schema, its condition must compile, and every plan path it reads must exist in the field catalog. A path the API no longer has fails the build here instead of in production.",
+       p:{"schema":"pass","celCompile":"pass","paths":{"benefit.tier.map[gpi]":"ok","benefit.specialty.flag":"ok","benefit.pa.required[tier]":"ok"}}},
+      {t:"Replay golden claims", n:["ci","gold"], e:[["ci","gold"]], ms:"~6 min",
+       tech:["Known outcomes","Match rate"],
+       d:"Claims with known adjudication results are re-explained under the new rule. The pull request shows which explanations changed and whether the match rate moved.",
+       p:{"claimsReplayed":1840,"matchRate":{"before":0.962,"after":0.968},"changedExplanations":23,"newGaps":0}},
+      {t:"The owning team approves", n:["ci","rev"], e:[["ci","rev"]], ms:"hours",
+       tech:["CODEOWNERS","Required reviewers"],
+       d:"The UM SME team owns this domain's rules and must approve. Platform owners review only changes to shared schemas.",
+       p:{"reviewers":["um-sme-team"],"checks":"all green","decision":"approved"}},
+      {t:"Publish a new version", n:["rev","pub","mongo","vec"], e:[["rev","pub"],["pub","mongo"],["pub","vec"]], ms:"seconds",
+       tech:["Effective dates","Embedding refresh"],
+       d:"On merge, version 4 is inserted and version 3 gets an end date. Nothing is overwritten, so history is preserved. The rule text is re-embedded for vector search.",
+       p:{"v3":{"effective":{"from":"2024-01-01","to":"2026-11-01"}},"v4":{"effective":{"from":"2026-11-01","to":null}}}},
+      {t:"Agents pick it up live", n:["mongo","agents","pub","xc"], e:[["mongo","agents"],["pub","xc"]], ms:"< 1 min",
+       tech:["Change streams","Rule set hash"],
+       d:"The UM agent's change stream delivers the new card and refreshes its in-memory rules. The domain's rule set hash changes, so cached explanations under the old hash are no longer used.",
+       p:{"operationType":"insert","ns":"madhava.ruleCards","documentKey":"UM-PA-TIER4@4","ruleSetHash":{"old":"rs-9f31c2","new":"rs-a07d18"}}},
+      {t:"Old claims keep their old rules", n:["agents","mongo"], e:[["agents","mongo"]], ms:"always",
+       tech:["Rules as of DOS","What-if today"],
+       d:"A claim from September is still explained with version 3, because that was in force on its date of service. Asking for rules as of today evaluates version 4 and shows the difference.",
+       p:{"claim":"RX-2026-0914-77231","dos":"2026-09-14","rulesAsOf":"dateOfService","resolved":"UM-PA-TIER4 v3","compareWith":"current → v4"}}
+    ]
+  };
+
+  S.batch = {
+    nodes:[
+      N("req",20,264,"Audit analyst","Uploads claim list","person"),
+      N("bapi",180,264,"batch-api","Spring Boot","tool"),
+      N("topic",340,264,"Work queue","Pub/Sub","data"),
+      N("dlq",340,100,"Dead letter","Retry later","data"),
+      N("work",500,264,"Batch workers","KEDA scaled","tool"),
+      N("orch",660,264,"Orchestrator","Low-priority lane","tool"),
+      N("agents",825,264,"Domain agents","Same services","agent",150),
+      N("bq",500,450,"Results","BigQuery","data"),
+      N("rep",180,450,"Audit report","Reasons and gaps","person")
+    ],
+    groups:[],
+    steps:[
+      {t:"A batch is submitted", n:["req","bapi"], e:[["req","bapi"]], ms:"t = 0",
+       tech:["REST","Job ID"],
+       d:"A client audit needs reasons for 25,000 rejected claims from last quarter. The analyst uploads the list and receives a job ID.",
+       p:{"POST":"/batches","body":{"claims":"25000 IDs","rulesAsOf":"dateOfService","outputs":["primaryReason","gaps"]},"jobId":"job-q3-audit-17"}},
+      {t:"Claims are queued", n:["bapi","topic"], e:[["bapi","topic"]], ms:"seconds",
+       tech:["Pub/Sub","Ordering not required"],
+       d:"Each claim becomes one message, so failures retry individually and progress is easy to track.",
+       p:{"topic":"madhava-batch","messages":25000,"attributes":{"jobId":"job-q3-audit-17","priority":"low"}}},
+      {t:"Workers scale on the backlog", n:["topic","work"], e:[["topic","work"]], ms:"minutes",
+       tech:["KEDA","Rate cap on plan API"],
+       d:"KEDA adds workers as the backlog grows. A global rate cap protects the plan setup API and leaves headroom for interactive traffic.",
+       p:{"backlog":25000,"replicas":{"min":0,"max":40},"planApiBudget":"30% of capacity"}},
+      {t:"The same agents do the work", n:["work","orch","agents"], e:[["work","orch"],["orch","agents"]], ms:"per claim ≈ 4 to 8 s",
+       tech:["A2A","No streaming","Longer deadline"],
+       d:"Batch uses the same orchestrator and agents as interactive questions, on a lower priority lane with a longer deadline and no streaming. One code path means one set of answers.",
+       p:{"lane":"batch","deadlineMs":15000,"stream":false}},
+      {t:"Results land, failures retry", n:["work","bq","topic","dlq"], e:[["work","bq"],["topic","dlq"]], ms:"overnight",
+       tech:["BigQuery","Dead-letter topic"],
+       d:"Each explanation record is written to BigQuery. Messages that fail five times go to a dead-letter topic for review instead of blocking the job.",
+       p:{"written":24961,"deadLettered":39,"table":"madhava.explanations"}},
+      {t:"The report is built from the records", n:["bq","rep"], e:[["bq","rep"]], ms:"minutes",
+       tech:["SQL","Gap analysis"],
+       d:"The audit report groups claims by primary reason and lists outcomes no rule could explain. Those gaps go straight to the owning SME teams as new rule work.",
+       p:{"topReasons":[{"rule":"UM-PA-TIER4","claims":8120},{"rule":"FC-NOT-COVERED","claims":5310}],"gapRate":0.021,"gapsByDomain":{"pricing":290,"cob":118}}}
+    ]
+  };
+
+  var svg = document.getElementById("stage");
+  if (!svg) return;
+  var NS = "http://www.w3.org/2000/svg";
+  function el(tag, attrs, parent){ var e = document.createElementNS(NS, tag); for (var k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; }
+
+  var cur = {name:null, i:0, boxes:{}, edges:{}, nodes:{}, groups:{}}, playTimer = null;
+  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function boxOf(id){ return cur.boxes[id]; }
+  function edgePath(a, b){
+    var A = boxOf(a), B = boxOf(b);
+    var acx = A.x + A.w/2, acy = A.y + A.h/2, bcx = B.x + B.w/2, bcy = B.y + B.h/2;
+    var clamp = function(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); };
+    var sx, sy, tx, ty;
+    if (B.x > A.x + A.w - 4 || B.x + B.w < A.x + 4){
+      var right = B.x > A.x;
+      sx = right ? A.x + A.w : A.x; tx = right ? B.x : B.x + B.w;
+      sy = A.isGroup ? clamp(bcy, A.y + 24, A.y + A.h - 14) : acy;
+      ty = B.isGroup ? clamp(acy, B.y + 24, B.y + B.h - 14) : bcy;
+      var mx = (sx + tx) / 2;
+      return "M"+sx+","+sy+" C"+mx+","+sy+" "+mx+","+ty+" "+(tx + (right?-3:3))+","+ty;
+    } else {
+      var down = B.y > A.y;
+      sy = down ? A.y + A.h : A.y; ty = down ? B.y : B.y + B.h;
+      sx = acx; tx = bcx;
+      var my = (sy + ty) / 2;
+      return "M"+sx+","+sy+" C"+sx+","+my+" "+tx+","+my+" "+tx+","+(ty + (down?-3:3));
+    }
+  }
+
+  function build(name){
+    var sc = S[name];
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    cur = {name:name, i:0, boxes:{}, edges:{}, nodes:{}, groups:{}};
+    var defs = el("defs", {}, svg);
+    [["arr",""],["arrOn","on"]].forEach(function(m){
+      var mk = el("marker", {id:m[0], viewBox:"0 0 10 10", refX:"8", refY:"5", markerWidth:"7", markerHeight:"7", orient:"auto-start-reverse", "class":m[1]}, defs);
+      el("path", {d:"M0,0 L10,5 L0,10 z"}, mk);
+    });
+    var maxY = 0;
+    sc.nodes.forEach(function(n){ cur.boxes[n.id] = n; maxY = Math.max(maxY, n.y + n.h); });
+    (sc.groups||[]).forEach(function(g){
+      var xs = g.members.map(function(m){ return cur.boxes[m]; });
+      var x = Math.min.apply(null, xs.map(function(b){return b.x;})) - 12;
+      var y = Math.min.apply(null, xs.map(function(b){return b.y;})) - 28;
+      var r = Math.max.apply(null, xs.map(function(b){return b.x + b.w;})) + 12;
+      var bt = Math.max.apply(null, xs.map(function(b){return b.y + b.h;})) + 12;
+      cur.boxes[g.id] = {x:x, y:y, w:r - x, h:bt - y, isGroup:true};
+      var gg = el("g", {"class":"group"}, svg);
+      el("rect", {x:x, y:y, width:r - x, height:bt - y, rx:6}, gg);
+      var tx = el("text", {x:x + 10, y:y + 17}, gg); tx.textContent = g.label;
+      cur.groups[g.id] = gg;
+    });
+    svg.setAttribute("viewBox", "0 0 1000 " + Math.max(560, maxY + 24));
+    var edgeLayer = el("g", {}, svg);
+    var seen = {};
+    sc.steps.forEach(function(s){ s.e.forEach(function(e){
+      var k = e[0] + ">" + e[1]; if (seen[k]) return; seen[k] = 1;
+      cur.edges[k] = el("path", {d:edgePath(e[0], e[1]), "class":"edge", "marker-end":"url(#arr)"}, edgeLayer);
+    }); });
+    sc.nodes.forEach(function(n){
+      var g = el("g", {"class":"node k-" + n.k}, svg);
+      el("rect", {"class":"box", x:n.x, y:n.y, width:n.w, height:n.h, rx:5}, g);
+      el("rect", {"class":"kind", x:n.x, y:n.y + 6, width:4, height:n.h - 12, rx:1}, g);
+      var cy = n.y + n.h/2;
+      var t = el("text", {x:n.x + 12, y:cy - 3}, g); t.textContent = n.t;
+      var s = el("text", {x:n.x + 12, y:cy + 13, "class":"sub"}, g); s.textContent = n.s;
+      cur.nodes[n.id] = g;
+    });
+    var list = document.getElementById("fSteps");
+    list.innerHTML = "";
+    sc.steps.forEach(function(s, i){
+      var li = document.createElement("li");
+      var b = document.createElement("button"); b.type = "button"; b.textContent = s.t;
+      b.addEventListener("click", function(){ stop(); go(i); });
+      li.appendChild(b); list.appendChild(li);
+    });
+    document.querySelectorAll(".scen-btn").forEach(function(b){ b.setAttribute("aria-selected", b.getAttribute("data-s") === name ? "true" : "false"); });
+    go(0);
+  }
+
+  function go(i){
+    var sc = S[cur.name], steps = sc.steps;
+    cur.i = Math.max(0, Math.min(steps.length - 1, i));
+    svg.classList.add("playing");
+    var activeN = {}, doneN = {}, activeE = {}, doneE = {}, activeG = {};
+    steps.forEach(function(s, j){
+      if (j < cur.i){ s.n.forEach(function(n){ doneN[n] = 1; }); s.e.forEach(function(e){ doneE[e[0]+">"+e[1]] = 1; }); }
+    });
+    var s = steps[cur.i];
+    s.n.forEach(function(n){ activeN[n] = 1; });
+    s.e.forEach(function(e){ activeE[e[0]+">"+e[1]] = 1; if (cur.boxes[e[0]].isGroup) activeG[e[0]] = 1; if (cur.boxes[e[1]].isGroup) activeG[e[1]] = 1; });
+    (s.g||[]).forEach(function(g){ activeG[g] = 1; });
+    Object.keys(cur.nodes).forEach(function(id){
+      var g = cur.nodes[id];
+      var inGroupActive = Object.keys(activeG).some(function(gid){ var grp = (sc.groups||[]).filter(function(x){return x.id===gid;})[0]; return grp && grp.members.indexOf(id) > -1; });
+      g.classList.toggle("active", !!activeN[id] || inGroupActive);
+      g.classList.toggle("done", !!doneN[id]);
+    });
+    Object.keys(cur.groups).forEach(function(id){ cur.groups[id].classList.toggle("active", !!activeG[id]); });
+    Object.keys(cur.edges).forEach(function(k){
+      var p = cur.edges[k];
+      p.setAttribute("class", "edge" + (activeE[k] ? " active" : (doneE[k] ? " done" : "")));
+      p.setAttribute("marker-end", activeE[k] ? "url(#arrOn)" : "url(#arr)");
+      if (activeE[k]) p.parentNode.appendChild(p);
+    });
+    document.getElementById("fTitle").textContent = s.t;
+    document.getElementById("fDesc").textContent = s.d;
+    var meta = document.getElementById("fMeta"); meta.innerHTML = "";
+    var tm = document.createElement("span"); tm.className = "time"; tm.textContent = s.ms; meta.appendChild(tm);
+    s.tech.forEach(function(t){ var sp = document.createElement("span"); sp.textContent = t; meta.appendChild(sp); });
+    document.getElementById("fPayload").textContent = JSON.stringify(s.p, null, 2);
+    document.getElementById("fCount").textContent = "Step " + (cur.i + 1) + " of " + steps.length;
+    document.querySelectorAll("#fSteps li").forEach(function(li, j){ li.classList.toggle("cur", j === cur.i); });
+    document.getElementById("fPrev").disabled = cur.i === 0;
+    document.getElementById("fNext").disabled = cur.i === steps.length - 1;
+  }
+
+  function stop(){ clearInterval(playTimer); playTimer = null; document.getElementById("fPlay").textContent = "Play"; }
+  function play(){
+    var steps = S[cur.name].steps;
+    if (cur.i >= steps.length - 1) go(0);
+    document.getElementById("fPlay").textContent = "Pause";
+    playTimer = setInterval(function(){
+      if (cur.i >= S[cur.name].steps.length - 1){ stop(); return; }
+      go(cur.i + 1);
+    }, reduce ? 4500 : 3200);
+  }
+  document.getElementById("fPlay").addEventListener("click", function(){ playTimer ? stop() : play(); });
+  document.getElementById("fNext").addEventListener("click", function(){ stop(); go(cur.i + 1); });
+  document.getElementById("fPrev").addEventListener("click", function(){ stop(); go(cur.i - 1); });
+  document.querySelectorAll(".scen-btn").forEach(function(b){
+    b.addEventListener("click", function(){ stop(); build(b.getAttribute("data-s")); });
+  });
+  build("question");
+})();
+</script>
+
+</body>
+</html>
