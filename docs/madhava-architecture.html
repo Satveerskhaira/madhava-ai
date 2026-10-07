@@ -230,6 +230,46 @@ footer{padding:36px 0 56px;color:var(--muted);font-size:.9rem;border-top:1px sol
 .ext-box{border:1px solid var(--line);border-radius:4px;padding:12px;display:flex;flex-direction:column;gap:4px;background:var(--surface)}
 .ext-box b{font-size:.92rem;margin-bottom:2px}
 .ext-box span{font-size:.88rem;color:var(--muted)}
+/* layers view */
+.verdict{border-left:3px solid var(--rx);padding:2px 0 2px 16px;max-width:70ch}
+.verdict p{margin:.3rem 0}
+.layers-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:20px;margin-top:20px}
+@media(min-width:960px){.layers-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.nest{position:sticky;top:64px;align-self:start}}
+.ring{border:1.5px solid var(--line);border-radius:6px;padding:6px 8px 8px;background:var(--surface);transition:border-color .2s}
+.ring .ring{margin-top:6px}
+.r-loops,.r-agents{background:var(--paper)}
+.r-ai{background:var(--fire-soft)}
+.ring.sel{border-color:var(--rx);box-shadow:inset 0 0 0 1px var(--rx)}
+.ring-btn{all:unset;box-sizing:border-box;display:block;width:100%;cursor:pointer;padding:6px 6px 4px;border-radius:4px}
+.ring-btn:focus-visible{outline:3px solid var(--fire);outline-offset:1px}
+.ring-btn:hover .ring-name{text-decoration:underline}
+.ring-name{display:block;font-weight:700;font-size:1.02rem}
+.ring-q{display:block;font-size:.86rem;color:var(--muted)}
+.ring-eg{display:block;font-size:.82rem;margin-top:3px}
+.ring.sel > .ring-btn .ring-name{color:var(--rx)}
+.lpanel{background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:16px 18px;align-self:start;min-width:0}
+.lpanel h3{font-size:1.3rem}
+.lpanel .role{color:var(--muted);margin:.3rem 0 .8rem}
+.lpanel .lbl{font-weight:600;font-size:.95rem;margin:14px 0 6px}
+.lpanel ol{margin:0;padding-left:1.25rem}
+.lpanel ol li{margin-bottom:.35rem;font-size:.95rem}
+.lpanel p.small{font-size:.95rem;margin:.2rem 0}
+.lgraph-wrap{background:var(--surface);border:1px solid var(--line);border-radius:4px;overflow-x:auto;margin-top:18px}
+.lgraph{display:block;width:100%;min-width:820px;height:auto}
+.lgraph .box{fill:var(--surface);stroke:var(--line);stroke-width:1.3}
+.lgraph .k.det{fill:var(--ink)}
+.lgraph .k.model{fill:var(--fire)}
+.lgraph .k.agent{fill:var(--rx)}
+.lgraph text{fill:var(--ink);font-family:"Instrument Sans",system-ui,sans-serif;font-size:13px;font-weight:600}
+.lgraph text.sub{fill:var(--muted);font-size:11px;font-weight:400}
+.lgraph .fe path{stroke:var(--muted);stroke-width:1.4;fill:none}
+.lgraph .m{fill:var(--muted)}
+.lgraph .mb{fill:var(--fire)}
+.lgraph path.back{stroke:var(--fire);stroke-width:2;stroke-dasharray:6 4;fill:none}
+.lgraph .blabel{fill:var(--fire);font-size:12px}
+.lgraph .mini{fill:var(--rx-soft);stroke:var(--rx);stroke-width:1}
+.lgraph .mt{font-size:10px;font-weight:500}
+.lgraph .tick{stroke:var(--rx);stroke-width:1.4}
 </style>
 </head>
 <body>
@@ -237,6 +277,7 @@ footer{padding:36px 0 56px;color:var(--muted);font-size:.9rem;border-top:1px sol
   <a href="#explain" aria-current="page">How it explains</a>
   <a href="#end-to-end">End-to-end flow</a>
   <a href="#technology">Backend technology</a>
+  <a href="#layers">Agent layers</a>
 </div></nav>
 <div class="view" id="view-overview">
 
@@ -995,6 +1036,115 @@ db.ruleCards.aggregate([{ $vectorSearch: {
   </div>
 </section>
 </div>
+<div class="view off" id="view-layers" inert>
+<header class="hero wrap" style="padding-bottom:8px">
+  <h1>AI, agents, harness, loops and graphs in Madhava</h1>
+  <p class="lede">Yes, Madhava follows this layered pattern. Each layer answers a different question, and the design puts most of the correctness in the harness and the graph, so the model is the smallest part of the system.</p>
+</header>
+
+<section style="border-top:0;padding-top:12px">
+  <div class="wrap">
+    <div class="verdict">
+      <p><b>The twist:</b> the request path is a graph of bounded steps, not an open agent loop. Runtime loops are short and capped, with a deterministic check deciding when to stop. The loop that makes Madhava better over time runs outside the request: golden-claim replay finds gaps, SMEs write rules, and CI proves them before they go live.</p>
+    </div>
+
+    <h2 style="margin-top:32px">Each layer wraps the one inside it</h2>
+    <p class="prose">Select a layer to see its role, the Madhava parts that implement it, and the steps to build it.</p>
+    <div class="layers-grid">
+      <div class="nest" id="nest">
+        <div class="ring r-graphs" data-l="graphs">
+          <button type="button" class="ring-btn" data-l="graphs"><span class="ring-name">Graphs</span><span class="ring-q">How does work move between parts?</span><span class="ring-eg">Request graph, A2A fan-out, rule lifecycle, batch</span></button>
+          <div class="ring r-loops" data-l="loops">
+            <button type="button" class="ring-btn" data-l="loops"><span class="ring-name">Loops</span><span class="ring-q">When does the system try again, and when does it stop?</span><span class="ring-eg">Gap round, retrieval fallback, improvement loop</span></button>
+            <div class="ring r-harness" data-l="harness">
+              <button type="button" class="ring-btn" data-l="harness"><span class="ring-name">Harness</span><span class="ring-q">What can an agent see and do?</span><span class="ring-eg">MCP tools, plan slices, rule cards, CEL evaluator</span></button>
+              <div class="ring r-agents" data-l="agents">
+                <button type="button" class="ring-btn" data-l="agents"><span class="ring-name">Agents</span><span class="ring-q">Who owns which part of the answer?</span><span class="ring-eg">Orchestrator and eight domain agents</span></button>
+                <div class="ring r-ai" data-l="ai">
+                  <button type="button" class="ring-btn" data-l="ai"><span class="ring-name">AI</span><span class="ring-q">What needs language understanding?</span><span class="ring-eg">Small, strong and embedding models</span></button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="lpanel" id="lpanel" aria-live="polite"></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>The request graph, with its one runtime loop</h2>
+    <p class="prose">Every question runs through the same nodes in the same order. Two nodes call a model. The only back edge is the gap round, and the coverage check allows it at most once.</p>
+    <div class="lgraph-wrap">
+      <svg class="lgraph" viewBox="0 0 1000 250" role="img" aria-label="Request graph: snapshot, understand, route, fan-out, coverage check, synthesize, answer, with one gap round from coverage check back to fan-out">
+        <defs>
+          <marker id="lgArr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="m" d="M0,0 L10,5 L0,10 z"/></marker>
+          <marker id="lgArrB" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mb" d="M0,0 L10,5 L0,10 z"/></marker>
+        </defs>
+        <path class="back" d="M640,106 C640,36 500,36 500,102" marker-end="url(#lgArrB)"/>
+        <text class="blabel" x="570" y="30" text-anchor="middle">Gap round, at most once</text>
+        <g class="fe">
+          <path d="M140,134 L156,134" marker-end="url(#lgArr)"/><path d="M280,134 L296,134" marker-end="url(#lgArr)"/>
+          <path d="M420,134 L436,134" marker-end="url(#lgArr)"/><path d="M560,134 L576,134" marker-end="url(#lgArr)"/>
+          <path d="M700,134 L716,134" marker-end="url(#lgArr)"/><path d="M840,134 L856,134" marker-end="url(#lgArr)"/>
+        </g>
+        <g class="n"><rect class="box" x="20" y="106" width="120" height="56" rx="5"/><rect class="k det" x="20" y="112" width="4" height="44"/><text x="32" y="130">Snapshot</text><text class="sub" x="32" y="146">MCP get_claim</text></g>
+        <g class="n"><rect class="box" x="160" y="106" width="120" height="56" rx="5"/><rect class="k model" x="160" y="112" width="4" height="44"/><text x="172" y="130">Understand</text><text class="sub" x="172" y="146">Small model</text></g>
+        <g class="n"><rect class="box" x="300" y="106" width="120" height="56" rx="5"/><rect class="k det" x="300" y="112" width="4" height="44"/><text x="312" y="130">Route</text><text class="sub" x="312" y="146">Agent cards</text></g>
+        <g class="n"><rect class="box" x="440" y="106" width="120" height="56" rx="5"/><rect class="k agent" x="440" y="112" width="4" height="44"/><text x="452" y="130">Fan-out</text><text class="sub" x="452" y="146">A2A, in parallel</text></g>
+        <g class="n"><rect class="box" x="580" y="106" width="120" height="56" rx="5"/><rect class="k det" x="580" y="112" width="4" height="44"/><text x="592" y="130">Coverage check</text><text class="sub" x="592" y="146">Verifier</text></g>
+        <g class="n"><rect class="box" x="720" y="106" width="120" height="56" rx="5"/><rect class="k model" x="720" y="112" width="4" height="44"/><text x="732" y="130">Synthesize</text><text class="sub" x="732" y="146">Strong model</text></g>
+        <g class="n"><rect class="box" x="860" y="106" width="120" height="56" rx="5"/><rect class="k det" x="860" y="112" width="4" height="44"/><text x="872" y="130">Answer</text><text class="sub" x="872" y="146">SSE, audit record</text></g>
+        <g class="sub-agents">
+          <rect class="mini" x="446" y="178" width="108" height="16" rx="3"/><text class="mt" x="454" y="190">UM agent</text>
+          <rect class="mini" x="446" y="198" width="108" height="16" rx="3"/><text class="mt" x="454" y="210">Coverage agent</text>
+          <rect class="mini" x="446" y="218" width="108" height="16" rx="3"/><text class="mt" x="454" y="230">Pricing agent, …</text>
+          <path class="tick" d="M500,162 L500,176"/>
+        </g>
+      </svg>
+    </div>
+    <div class="legend" style="margin-top:10px">
+      <span><i style="background:var(--ink)"></i>Deterministic node</span>
+      <span><i style="background:var(--fire)"></i>Model call</span>
+      <span><i style="background:var(--rx)"></i>Subgraph of domain agents</span>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Every loop has a verifier and a cap</h2>
+    <p class="prose">A loop is only safe when something other than the model decides it has succeeded. These are the four loops in Madhava.</p>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>Loop</th><th>Runs</th><th>What repeats</th><th>Verifier</th><th>Stops when</th></tr></thead>
+        <tbody>
+          <tr><td><b>Gap round</b></td><td>Per question, orchestrator</td><td>A small model proposes more domains, which are fanned out again</td><td>Coverage check on outcome tokens</td><td>All tokens explained, one extra round used, or the deadline reached</td></tr>
+          <tr><td><b>Retrieval fallback</b></td><td>Per question, inside a domain agent</td><td>No candidate rule fired, so the agent widens to vector search and evaluates again</td><td>CEL evaluator</td><td>A rule fires, or one widened attempt is done</td></tr>
+          <tr><td><b>Conversation</b></td><td>Per session</td><td>Follow-up questions reuse findings already gathered</td><td>Coverage check per answer</td><td>The user stops, or the session limit is reached</td></tr>
+          <tr><td><b>Improvement</b></td><td>Weekly, offline</td><td>Golden replay, gaps and feedback become rule changes that are tested and published</td><td>Match rate and gap rate on golden claims</td><td>Each change must hold or raise the match rate before it merges</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Build order: inside out by risk, not by layer name</h2>
+    <p class="prose">Correctness lives in the harness, so build and prove it before any model is involved. Loops come last because they only help once there is a reliable verifier to stop them.</p>
+    <ol class="steps">
+      <li><div><h3>Harness, proven without a model</h3><p>Field catalog, plan slice service, rule cards, CEL evaluator and rule registry. Exit when a plain script explains a golden claim end to end using only the tools.</p></div></li>
+      <li><div><h3>One agent and its models</h3><p>The utilization management agent from the shared template, with the small model phrasing findings. Exit when it returns valid findings for its golden claims inside the deadline.</p></div></li>
+      <li><div><h3>The graph</h3><p>Orchestrator graph with understand, route, fan-out, coverage check and synthesize, over two or three domains. Exit when answers cite only findings and every run can be replayed.</p></div></li>
+      <li><div><h3>The loops</h3><p>Gap round and retrieval fallback with hard caps, then the weekly improvement loop feeding the SME backlog. Exit when each loop has a dashboard showing its trigger rate and outcome.</p></div></li>
+      <li><div><h3>Scale the graph</h3><p>Add the remaining domains as new nodes through agent cards, then the batch and rules-as-of graphs. Exit when a new domain ships without an orchestrator release.</p></div></li>
+    </ol>
+  </div>
+</section>
+</div>
 
 <footer>
   <div class="wrap">Madhava claim explainability architecture. Agent names, technology versions, reject code mappings, plan paths and timings are illustrative and should be replaced with the values from your plan setup schema and adjudication standards.</div>
@@ -1097,7 +1247,7 @@ db.ruleCards.aggregate([{ $vectorSearch: {
 <script>
 (function(){
   /* ---------- view routing ---------- */
-  var views = {"explain":"view-overview","end-to-end":"view-flow","technology":"view-tech"};
+  var views = {"explain":"view-overview","end-to-end":"view-flow","technology":"view-tech","layers":"view-layers"};
   var links = document.querySelectorAll(".topnav a");
   function show(hash, fromNav){
     var key = (hash||"").replace("#","");
@@ -1439,6 +1589,62 @@ db.ruleCards.aggregate([{ $vectorSearch: {
     b.addEventListener("click", function(){ stop(); build(b.getAttribute("data-s")); });
   });
   build("question");
+})();
+</script>
+
+<script>
+(function(){
+  var L = {
+    ai: {name:"AI", role:"Understands the question and writes the explanation. It never decides an outcome.",
+      parts:["Small model: understand, phrase findings, propose gap domains","Strong model: synthesis and follow-up turns","Embedding model: rule text for vector search","Enterprise LLM gateway: quotas, routing, PHI controls"],
+      det:"Whether a rule fired, which tools run, confidence levels and precedence are never left to a model.",
+      steps:["Pick approved models for three roles (small, strong, embedding) and register them in the LLM gateway with quotas.","Write versioned prompts for understand, phrase, gap and synthesize, kept in Git next to the agents.","Give every call a structured output schema so outputs are validated, not parsed.","Build evaluation sets from golden claims: faithful to evidence, correct citations, readable.","Turn on prompt caching for shared instructions and set a token budget per call."],
+      done:"Every model output passes its schema and cites only evidence it was given.",
+      avoid:"Letting the model read raw plan data or judge whether a rule applies."},
+    agents: {name:"Agents", role:"Domain specialists. Each owns one domain's rules, one scoped tool set and one A2A endpoint.",
+      parts:["Orchestrator: Python, Google ADK","Eight domain agents built from one ADK template","Agent cards declaring skills, triggers and reject codes","One GKE deployment per agent"],
+      det:"Each agent's tool sequence (find rules, fetch slices, evaluate) is fixed in code. The model only phrases what the evidence shows.",
+      steps:["Agree domain boundaries and reject code ownership with each SME team.","Build the shared ADK template: an Investigate step with no model, then a phrase step with the small model.","Write each agent card with skills, triggers, reject codes and rule domain.","Expose each agent over A2A and deploy it as its own GKE service.","Add contract tests for the finding schema, deadline behaviour and pending findings on timeout."],
+      done:"An agent explains its golden claims within 3.5 s at p95 with valid findings.",
+      avoid:"One general agent holding every tool, or agents calling each other directly instead of through the orchestrator."},
+    harness: {name:"Harness", role:"Everything around the model that sets what an agent can see and do. This is where correctness lives.",
+      parts:["MCP tool servers in Java: claim tools, plan slice, rule registry, CEL evaluator","Field catalog over the 12k plan setup fields","Rule cards with triggers, reads, conditions and templates","Context references instead of PHI copies","Scoped identities and tool filters per agent","Tracing, audit record and golden-claim replay"],
+      det:"All of it. The harness contains no model calls.",
+      steps:["Generate the field catalog from the plan setup API schema, then enrich it with SMEs.","Build the plan slice service with date-of-service resolution, path projection and caching.","Define the rule card schema, seed the first cards, and add CI checks for schema, CEL compile and paths.","Build the CEL evaluator returning evidence, and the rule registry with trigger and vector lookup.","Scope tools per agent with workload identity and tool filters, and pass context references, not PHI.","Add OpenTelemetry tracing and the replayable explanation record."],
+      done:"A plain script with no model explains a golden claim end to end using only the tools.",
+      avoid:"Giving agents the full plan payload, or tools with side effects they do not need."},
+    loops: {name:"Loops", role:"Repeat an attempt against an external check until it succeeds or hits a limit.",
+      parts:["Gap round in the orchestrator, at most once","Retrieval fallback inside each agent, at most once","Conversation turns that reuse findings","Weekly improvement loop: replay, gaps, rule changes, CI"],
+      det:"The stop decision. The coverage check, the evaluator and the match rate decide, never the model grading itself.",
+      steps:["Define outcome tokens and make the coverage check the stop condition.","Add the gap round with a hard cap of one and a share of the deadline budget.","Add the retrieval fallback to the Investigate step, capped at one widened search.","Build the golden-claim set and a replay job that publishes match rate and gap rate.","Send gaps and negative feedback to the owning SME backlog, and close the loop through rule pull requests."],
+      done:"Each loop has a named verifier, a maximum count and a dashboard showing how often it runs and how it ends.",
+      avoid:"Open-ended reasoning loops on the request path, or loops whose only judge is the model."},
+    graphs: {name:"Graphs", role:"How work moves between agents, tools and gates, with typed data on every edge.",
+      parts:["Request graph: snapshot, understand, route, fan-out, coverage check, synthesize, answer","Fan-out subgraph: dynamic, parallel A2A calls with deadlines","Rule lifecycle graph: pull request, CI, owner review, publish, live agents","Batch graph: queue, workers, the same request graph, BigQuery"],
+      det:"The shape. Nodes and edges are fixed in code; routing reads agent cards, not model output.",
+      steps:["Model the request graph as an ADK SequentialAgent with typed state keys.","Build the dynamic fan-out node with per-agent deadlines and streamed progress.","Drive routing from the agent card registry so a new domain is a new node, not a code change.","Add gates: coverage check, PHI policy, and owner approval in the rule lifecycle.","Persist each run's state and trace so any answer can be replayed through the same graph."],
+      done:"Any past answer replays through the same graph with the same rule versions and gives the same result.",
+      avoid:"Hard-wired agent lists in the orchestrator, or edges that pass free text instead of schemas."}
+  };
+  var panel = document.getElementById("lpanel");
+  if (!panel) return;
+  function esc(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;"); }
+  function select(key){
+    var d = L[key];
+    document.querySelectorAll("#nest .ring").forEach(function(r){ r.classList.toggle("sel", r.getAttribute("data-l") === key); });
+    document.querySelectorAll("#nest .ring-btn").forEach(function(b){ b.setAttribute("aria-pressed", b.getAttribute("data-l") === key ? "true" : "false"); });
+    panel.innerHTML =
+      "<h3>" + esc(d.name) + "</h3><p class='role'>" + esc(d.role) + "</p>" +
+      "<div class='lbl'>In Madhava</div><div class='chips'>" + d.parts.map(function(p){ return "<span class='chip'>" + esc(p) + "</span>"; }).join("") + "</div>" +
+      "<div class='lbl'>Stays deterministic</div><p class='small'>" + esc(d.det) + "</p>" +
+      "<div class='lbl'>Implementation steps</div><ol>" + d.steps.map(function(s){ return "<li>" + esc(s) + "</li>"; }).join("") + "</ol>" +
+      "<div class='lbl'>Done when</div><p class='small'>" + esc(d.done) + "</p>" +
+      "<div class='lbl'>Avoid</div><p class='small'>" + esc(d.avoid) + "</p>";
+  }
+  document.querySelectorAll("#nest .ring-btn").forEach(function(b){
+    b.addEventListener("click", function(e){ e.stopPropagation(); select(b.getAttribute("data-l")); });
+  });
+  select("harness");
 })();
 </script>
 

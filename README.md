@@ -15,6 +15,7 @@ Design for a pharmacy claim explainability layer: an LLM answers "why did this c
   - How it explains: layers, domain agents over A2A, rule cards linked to plan data, trust controls, scaling
   - End-to-end flow: step-through diagrams for a member question, a rule change and a batch audit
   - Backend technology: Python and Google ADK for the orchestrator and agents, Java and Spring Boot for MCP tool servers, where model calls happen
+  - Agent layers: how Madhava maps to AI, agents, harness, loops and graphs, with roles and implementation steps for each
 
 ## Status
 
