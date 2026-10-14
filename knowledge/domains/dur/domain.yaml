@@ -1,0 +1,11 @@
+domain: dur
+concepts: [dur.drug_interaction]
+owner: clinical-sme-team
+releases:
+  - id: RS-DUR-2026.01.1
+    effective_from: "2026-01-01"
+    effective_to: null
+    status: active
+    change_ref: ENG-REL-4001
+    reason: Baseline drug interaction rule
+    rules: [R-DUR-001@1]

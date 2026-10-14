@@ -1,0 +1,11 @@
+domain: quantity_limits
+concepts: [um.quantity_limits]
+owner: um-sme-team
+releases:
+  - id: RS-QL-2026.01.1
+    effective_from: "2026-01-01"
+    effective_to: null
+    status: active
+    change_ref: ENG-REL-4001
+    reason: Baseline quantity and days supply limits
+    rules: [R-QL-001@1, R-QL-002@1]

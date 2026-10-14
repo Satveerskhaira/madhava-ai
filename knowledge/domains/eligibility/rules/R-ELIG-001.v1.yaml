@@ -1,0 +1,19 @@
+id: R-ELIG-001
+version: 1
+status: approved
+domain: eligibility
+concept: eligibility.member_coverage
+intent: Reject when the fill is after the member's coverage was terminated
+outcome: {type: reject, code: "69"}
+claim_inputs: [claim.dos, claim.member.coverageEnd, claim.member.coverageEndReason]
+plan_inputs: []
+condition: >
+  has(claim.member.coverageEnd) && claim.dos > claim.member.coverageEnd
+  && claim.member.coverageEndReason == 'terminated'
+order: 10
+template: >
+  The member's coverage was terminated on {{claim.member.coverageEnd}}, before the
+  date of service {{claim.dos}}.
+source_refs: [{doc: Eligibility Processing Guide v3, section: "2.1 Terminated members"}]
+confidence: high
+sme_owner: eligibility-sme-team

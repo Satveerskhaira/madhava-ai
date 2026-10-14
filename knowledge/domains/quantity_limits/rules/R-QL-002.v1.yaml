@@ -1,0 +1,17 @@
+id: R-QL-002
+version: 1
+status: approved
+domain: quantity_limits
+concept: um.quantity_limits
+intent: Reject when the days supply exceeds the plan maximum for the channel
+outcome: {type: reject, code: "7X"}
+claim_inputs: [claim.daysSupply, claim.pharmacy.channel]
+plan_inputs: [plan.limits.maxDaysSupply]
+condition: "has(plan.limits.maxDaysSupply) && claim.daysSupply > plan.limits.maxDaysSupply"
+order: 41
+template: >
+  The {{claim.daysSupply}}-day supply is over the {{plan.limits.maxDaysSupply}}-day maximum
+  for {{claim.pharmacy.channel}} fills.
+source_refs: [{doc: Plan Setup Guide v7, section: "4.4 Days supply limits"}]
+confidence: high
+sme_owner: um-sme-team

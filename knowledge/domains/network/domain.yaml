@@ -1,0 +1,11 @@
+domain: network
+concepts: [network.specialty_channel]
+owner: network-sme-team
+releases:
+  - id: RS-NET-2026.01.1
+    effective_from: "2026-01-01"
+    effective_to: null
+    status: active
+    change_ref: ENG-REL-4001
+    reason: Baseline network channel rules
+    rules: [R-NET-001@1]
