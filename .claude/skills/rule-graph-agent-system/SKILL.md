@@ -13,7 +13,7 @@ Every level is the same planner with a different scope and different executors.
 
 ```
 user / any agent SDK --(adapter: ADK workflow, A2A, MCP, your SDK)--> CORE planner
-  CORE planner          executors = domain agents (in process, imported package; no network hop)
+  CORE planner          executors = domain agents (in process, installed packages; no network hop)
     understand -> plan -> act (fan-out) -> verify --gap round (bounded)--> act -> synthesize -> remember
   DOMAIN agent          = planner scoped to one taxonomy branch; executors = rule-domain investigators
     same loop: routes by its own taxonomy branch, sweeps its scope if unrouted, own gap round,
