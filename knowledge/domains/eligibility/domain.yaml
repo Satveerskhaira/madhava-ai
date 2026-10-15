@@ -1,0 +1,11 @@
+domain: eligibility
+concepts: [eligibility.member_coverage]
+owner: eligibility-sme-team
+releases:
+  - id: RS-ELIG-2026.01.1
+    effective_from: "2026-01-01"
+    effective_to: null
+    status: active
+    change_ref: ENG-REL-4001
+    reason: Baseline eligibility rules
+    rules: [R-ELIG-001@1, R-ELIG-002@1]

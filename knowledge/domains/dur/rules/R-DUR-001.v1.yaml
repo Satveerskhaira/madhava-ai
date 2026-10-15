@@ -1,0 +1,19 @@
+id: R-DUR-001
+version: 1
+status: approved
+domain: dur
+concept: dur.drug_interaction
+intent: Reject when the drug has a severe interaction with an active medication and the plan rejects severe interactions
+outcome: {type: reject, code: "88"}
+claim_inputs: [claim.drug.name, claim.history.activeDrugs]
+plan_inputs: [plan.formulary.drug.interactsWith, plan.dur.interactions.reject]
+condition: >
+  plan.dur.interactions.reject && has(plan.formulary.drug.interactsWith)
+  && plan.formulary.drug.interactsWith.exists(d, d in claim.history.activeDrugs)
+order: 20
+template: >
+  {{claim.drug.name}} has a severe interaction with an active medication
+  ({{plan.formulary.drug.interactsWith|list}}), and this plan rejects severe interactions.
+source_refs: [{doc: Clinical Edits Guide v2, section: "2.3 Drug-drug interactions"}]
+confidence: high
+sme_owner: clinical-sme-team

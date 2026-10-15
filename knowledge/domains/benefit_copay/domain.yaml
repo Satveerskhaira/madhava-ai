@@ -1,0 +1,11 @@
+domain: benefit_copay
+concepts: [cost_share.copay, cost_share.coinsurance]
+owner: benefits-sme-team
+releases:
+  - id: RS-COPAY-2026.01.1
+    effective_from: "2026-01-01"
+    effective_to: null
+    status: active
+    change_ref: ENG-REL-4001
+    reason: Baseline copay and coinsurance rules
+    rules: [R-CS-001@1, R-CS-002@1]

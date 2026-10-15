@@ -1,0 +1,20 @@
+id: R-NET-001
+version: 1
+status: approved
+domain: network
+concept: network.specialty_channel
+intent: Reject a specialty drug filled at retail for more than the retail specialty days supply limit
+outcome: {type: reject, code: "76"}
+claim_inputs: [claim.drug.name, claim.pharmacy.channel, claim.daysSupply]
+plan_inputs: [plan.formulary.drug.specialty, plan.network.specialty.retailMaxDaysSupply]
+condition: >
+  has(plan.formulary.drug.specialty) && plan.formulary.drug.specialty
+  && claim.pharmacy.channel == 'retail'
+  && claim.daysSupply > plan.network.specialty.retailMaxDaysSupply
+order: 50
+template: >
+  {{claim.drug.name}} is a specialty drug. At retail it is limited to
+  {{plan.network.specialty.retailMaxDaysSupply}} days, and this fill was {{claim.daysSupply}} days.
+source_refs: [{doc: Network Management Guide v4, section: "5.2 Specialty at retail"}]
+confidence: high
+sme_owner: network-sme-team

@@ -1,0 +1,192 @@
+# Adjudication taxonomy (taxonomic memory).
+#
+# Modelled on W3C SKOS: each concept has a prefLabel, altLabels (synonyms used
+# to understand questions), a definition, a broader concept, related concepts
+# and notations (the outcome tokens it classifies). `narrower` is derived.
+#
+# Two levels matter at runtime:
+#   - Top concepts carry `agent`: the domain agent that owns that branch.
+#     Their `precedence` is the adjudication order used to pick the primary
+#     reason when several rules fire.
+#   - Leaf concepts carry `rule_domain`: the unit rules are authored, owned
+#     and released in (see knowledge/domains/<rule_domain>).
+#
+# Outcome tokens: reject:<NCPDP reject code>, price:<component>, status:<paid|rejected>.
+
+scheme:
+  id: madhava:adjudication
+  prefLabel: Pharmacy claim adjudication
+  version: "2026.10"
+
+concepts:
+  # ---------------------------------------------------------------- eligibility
+  - id: eligibility
+    prefLabel: Eligibility
+    definition: Whether the member had active pharmacy coverage on the date of service.
+    agent: eligibility
+    precedence: 10
+    altLabels: [eligibility, eligible, member coverage, enrolled, enrollment]
+
+  - id: eligibility.member_coverage
+    broader: eligibility
+    prefLabel: Member coverage dates
+    definition: Coverage start, end and termination dates compared with the date of service.
+    rule_domain: eligibility
+    notations: ["reject:65", "reject:67", "reject:68", "reject:69"]
+    altLabels: [terminated, termed, coverage ended, not covered member, not eligible, coverage start, coverage effective]
+
+  # ------------------------------------------------------------------- coverage
+  - id: coverage
+    prefLabel: Formulary and coverage
+    definition: Whether the drug is covered by the plan's formulary and where it is placed.
+    agent: coverage
+    precedence: 20
+    altLabels: [formulary, covered drug, coverage]
+
+  - id: coverage.exclusion
+    broader: coverage
+    prefLabel: Benefit exclusion
+    definition: Drugs or drug classes the plan excludes from the benefit.
+    rule_domain: formulary
+    notations: ["reject:70"]
+    altLabels: [excluded, exclusion, not covered, plan exclusion, benefit exclusion]
+
+  - id: coverage.formulary_status
+    broader: coverage
+    prefLabel: Formulary status
+    definition: Whether the drug is on the plan's formulary.
+    rule_domain: formulary
+    notations: ["reject:MR"]
+    altLabels: [non-formulary, not on formulary, off formulary]
+
+  - id: coverage.tier
+    broader: coverage
+    prefLabel: Tier placement
+    definition: The formulary tier of the drug, which drives cost share and some utilization rules.
+    rule_domain: formulary
+    altLabels: [tier, tier placement, preferred brand, specialty tier, generic tier]
+    related: [cost_share.copay, cost_share.coinsurance, um.prior_authorization]
+
+  # ------------------------------------------------- utilization management
+  - id: um
+    prefLabel: Utilization management
+    definition: Clinical and quantity controls applied before a drug is paid.
+    agent: utilization_management
+    precedence: 30
+    altLabels: [utilization management, um]
+
+  - id: um.prior_authorization
+    broader: um
+    prefLabel: Prior authorization
+    definition: Approval required from the plan before the drug is covered.
+    rule_domain: prior_authorization
+    notations: ["reject:75"]
+    altLabels: [prior authorization, prior auth, pa, authorization]
+    related: [coverage.tier]
+
+  - id: um.step_therapy
+    broader: um
+    prefLabel: Step therapy
+    definition: A first-line drug must be tried before the submitted drug is covered.
+    rule_domain: step_therapy
+    notations: ["reject:608"]
+    altLabels: [step therapy, step edit, first-line drug, try first]
+
+  - id: um.quantity_limits
+    broader: um
+    prefLabel: Quantity and days supply limits
+    definition: Limits on quantity dispensed or days supply per fill.
+    rule_domain: quantity_limits
+    notations: ["reject:76", "reject:7X"]
+    altLabels: [quantity limit, ql, too many, days supply, plan limitations, plan limit]
+    related: [network.specialty_channel]
+
+  # ---------------------------------------------------------- clinical safety
+  - id: dur
+    prefLabel: Clinical safety (DUR)
+    definition: Drug utilization review checks for safety and appropriate use.
+    agent: clinical_dur
+    precedence: 40
+    altLabels: [dur, drug utilization review, safety, clinical edit]
+
+  - id: dur.refill_too_soon
+    broader: dur
+    prefLabel: Refill too soon
+    definition: Not enough of the previous fill's days supply has been used.
+    rule_domain: refill_too_soon
+    notations: ["reject:79"]
+    altLabels: [refill too soon, too early, early refill, refilled early]
+
+  - id: dur.drug_interaction
+    broader: dur
+    prefLabel: Drug interaction
+    definition: The submitted drug interacts with another active medication.
+    rule_domain: dur
+    notations: ["reject:88"]
+    altLabels: [interaction, drug interaction, drug-drug, dur reject, conflict]
+
+  # -------------------------------------------------------------------- network
+  - id: network
+    prefLabel: Pharmacy network
+    definition: Whether the pharmacy and channel may dispense the drug under this plan.
+    agent: network
+    precedence: 50
+    altLabels: [network, pharmacy, in network, out of network]
+
+  - id: network.specialty_channel
+    broader: network
+    prefLabel: Specialty channel
+    definition: Specialty drugs limited to specific pharmacies or days supply by channel.
+    rule_domain: network
+    altLabels: [specialty pharmacy, specialty channel, retail specialty, channel]
+    related: [um.quantity_limits]
+
+  # ------------------------------------------------- coordination of benefits
+  - id: cob
+    prefLabel: Coordination of benefits
+    definition: Whether another payer must be billed first.
+    agent: cob
+    precedence: 60
+    altLabels: [cob, other coverage, primary payer, secondary]
+
+  - id: cob.other_coverage
+    broader: cob
+    prefLabel: Other coverage
+    definition: Other primary coverage on file for the member.
+    rule_domain: cob
+    notations: ["reject:41"]
+    altLabels: [other insurance, primary insurance, bill primary, other payer]
+
+  # ----------------------------------------------------------------- cost share
+  - id: cost_share
+    prefLabel: Cost share
+    definition: What the member pays, from copay, coinsurance and deductible rules.
+    agent: cost_share
+    precedence: 70
+    altLabels: [cost, cost share, member pay, patient pay, price, pricing, out of pocket]
+
+  - id: cost_share.copay
+    broader: cost_share
+    prefLabel: Copay
+    definition: A flat amount the member pays per fill for a tier and channel.
+    rule_domain: benefit_copay
+    notations: ["price:copay"]
+    altLabels: [copay, co-pay, flat amount]
+    related: [coverage.tier]
+
+  - id: cost_share.coinsurance
+    broader: cost_share
+    prefLabel: Coinsurance
+    definition: A percentage of the drug cost the member pays, sometimes capped per fill.
+    rule_domain: benefit_copay
+    notations: ["price:coinsurance"]
+    altLabels: [coinsurance, percent, percentage]
+    related: [coverage.tier]
+
+  - id: cost_share.deductible
+    broader: cost_share
+    prefLabel: Deductible
+    definition: Amount the member pays in full before copay or coinsurance applies.
+    rule_domain: accumulators
+    notations: ["price:deductible"]
+    altLabels: [deductible, accumulator, toward deductible, full price]

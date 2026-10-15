@@ -1,0 +1,11 @@
+domain: cob
+concepts: [cob.other_coverage]
+owner: cob-sme-team
+releases:
+  - id: RS-COB-2026.01.1
+    effective_from: "2026-01-01"
+    effective_to: null
+    status: active
+    change_ref: ENG-REL-4001
+    reason: Baseline coordination of benefits rule
+    rules: [R-COB-001@1]

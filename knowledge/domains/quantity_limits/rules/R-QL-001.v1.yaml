@@ -1,0 +1,17 @@
+id: R-QL-001
+version: 1
+status: approved
+domain: quantity_limits
+concept: um.quantity_limits
+intent: Reject when the quantity dispensed exceeds the drug's per-fill quantity limit
+outcome: {type: reject, code: "76"}
+claim_inputs: [claim.drug.name, claim.quantity]
+plan_inputs: [plan.formulary.drug.qlQuantity]
+condition: "has(plan.formulary.drug.qlQuantity) && double(claim.quantity) > double(plan.formulary.drug.qlQuantity)"
+order: 40
+template: >
+  The quantity {{claim.quantity}} is over the plan limit of {{plan.formulary.drug.qlQuantity}}
+  per fill for {{claim.drug.name}}.
+source_refs: [{doc: Plan Setup Guide v7, section: "4.4 Quantity limits"}]
+confidence: high
+sme_owner: um-sme-team

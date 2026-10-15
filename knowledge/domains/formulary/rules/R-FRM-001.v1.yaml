@@ -1,0 +1,15 @@
+id: R-FRM-001
+version: 1
+status: approved
+domain: formulary
+concept: coverage.exclusion
+intent: Reject drugs the plan excludes from the pharmacy benefit
+outcome: {type: reject, code: "70"}
+claim_inputs: [claim.drug.name]
+plan_inputs: [plan.formulary.drug.excluded]
+condition: "has(plan.formulary.drug.excluded) && plan.formulary.drug.excluded"
+order: 10
+template: "{{claim.drug.name}} is excluded from this plan's pharmacy benefit."
+source_refs: [{doc: Plan Setup Guide v7, section: "3.4 Benefit exclusions"}]
+confidence: high
+sme_owner: formulary-sme-team

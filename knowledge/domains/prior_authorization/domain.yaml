@@ -1,0 +1,19 @@
+domain: prior_authorization
+concepts: [um.prior_authorization]
+owner: um-sme-team
+releases:
+  - id: RS-PA-2026.01.1
+    effective_from: "2026-01-01"
+    effective_to: "2026-10-01"
+    status: archived
+    change_ref: ENG-REL-4001
+    reason: Baseline prior authorization rules
+    rules: [R-PA-001@1, R-PA-OVR-002@1]
+  - id: RS-PA-2026.10.1
+    effective_from: "2026-10-01"
+    effective_to: null
+    status: active
+    change_ref: ENG-REL-4412
+    reason: Prior authorization now applies to every drug on a plan PA tier, not only drugs flagged individually
+    previous: RS-PA-2026.01.1
+    rules: [R-PA-001@2, R-PA-OVR-002@1]
