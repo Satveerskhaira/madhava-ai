@@ -41,9 +41,9 @@ Ask a single domain agent: `pharmacy-agents ask utilization_management RX-1001 "
 
 ## Docs
 
-- [`docs/agent-system.md`](docs/agent-system.md): layers, knowledge model, memory types, graph search, loops, standards, scaling (see its v0.2 note)
+- [`docs/agent-system.md`](docs/agent-system.md): where the code lives, the three planner levels, knowledge model, memory types, graph search, nested loops with real traces, standards, scaling
 - [`docs/claim-explainability-design.md`](docs/claim-explainability-design.md): initial design (v0.1)
-- [`docs/madhava-architecture.html`](docs/madhava-architecture.html): architecture page. It predates v0.2 and still shows domain agents over A2A; now only the core is served over A2A.
+- [`docs/madhava-architecture.html`](docs/madhava-architecture.html): interactive architecture page (open in a browser): layers, step-through flows, backend technology and agent layers. Domain agents run in process inside the core agent; only the core is exposed over A2A.
 
 ## Status
 
