@@ -55,7 +55,7 @@ python .claude/skills/rule-graph-agent-system/scripts/scaffold.py --dest ../<pro
 cd ../<project> && pip install -e ".[dev]" && <name> validate && <name> --today 2026-10-14 eval && pytest
 ```
 
-This copies the working implementation under a new package name, with the pharmacy example knowledge, so the project starts green. Outside this repository, clone `https://github.com/Satveerskhaira/madhava-ai` and pass `--source`. If scaffolding is not wanted (another language or framework), port the same modules, using `references/architecture.md` as the spec.
+This copies the working implementation under a new package name, with the pharmacy example knowledge, so the project starts green. Outside this repository, clone `https://github.com/Satveerskhaira/madhava-ai` (branch `agent-system` until it is merged to `main`) and pass `--source`. If scaffolding is not wanted (another language or framework), port the same modules, using `references/architecture.md` as the spec.
 
 ### 2. Replace the knowledge, one domain at a time
 
@@ -103,7 +103,7 @@ These need little change if the knowledge is right. Check the planner trace (`as
 
 ## Reference files
 
-These files sit next to this SKILL.md. If they are missing (for example, an account-level install), read them from `.claude/skills/rule-graph-agent-system/` in a checkout of `https://github.com/Satveerskhaira/madhava-ai`.
+These files sit next to this SKILL.md. If they are missing (for example, an account-level install), read them from `.claude/skills/rule-graph-agent-system/` in a checkout of `https://github.com/Satveerskhaira/madhava-ai` (branch `agent-system` until merged).
 
 - `references/architecture.md`: the full design, including memory types, graph search, loops, standards and production mapping. Read it first when designing or explaining the system.
 - `references/knowledge-schemas.md`: YAML templates for the taxonomy, ontology, catalog, rule cards, releases, procedures and goldens. Read it when writing knowledge.
