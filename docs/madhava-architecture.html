@@ -355,7 +355,7 @@ footer{padding:36px 0 56px;color:var(--muted);font-size:.9rem;border-top:1px sol
         </div>
         <div class="link"><span>In-process tasks in parallel, with deadlines</span></div>
         <div class="layer a2a">
-          <div class="layer-name">Domain agents<small>Planners per domain, one package and repo each</small></div>
+          <div class="layer-name">Domain agents<small>Planners per domain, one fragment each</small></div>
           <div class="chips">
             <span class="chip">Eligibility and member</span><span class="chip">Formulary and coverage</span>
             <span class="chip">Utilization management (PA, ST, QL)</span><span class="chip">Clinical DUR</span>
@@ -457,7 +457,7 @@ sequenceDiagram
 <section id="agents">
   <div class="wrap">
     <h2>Domain agents and what each one owns</h2>
-    <p class="prose">Each domain agent is a planner scoped to its branch of the adjudication taxonomy, owned with its SME team. It plans which of its rule domains to check, runs one investigator per rule domain, verifies that every outcome in its scope is explained, runs its own bounded gap round, and reports findings and gaps to the core. It can also answer a question directly from its domain's point of view. Each domain agent ships as its own versioned package (its own repository, owned by its SME team) holding a knowledge fragment that extends the shared pharmacy base. The core discovers the installed domain packages and imports them; adding a domain is installing its package.</p>
+    <p class="prose">Each domain agent is a planner scoped to its branch of the adjudication taxonomy, owned with its SME team. It plans which of its rule domains to check, runs one investigator per rule domain, verifies that every outcome in its scope is explained, runs its own bounded gap round, and reports findings and gaps to the core. It can also answer a question directly from its domain's point of view. Each domain agent is its own knowledge fragment (owned by its SME team, with its own rules, goldens and tests) extending the shared pharmacy base, released from the domain agents repository. The core discovers the installed domain packages and imports them; adding a domain is installing its package.</p>
     <div class="tbl">
       <table>
         <thead><tr><th>Agent</th><th>Explains</th><th>Typical triggers</th><th>Plan areas it reads</th></tr></thead>
@@ -812,7 +812,7 @@ sequenceDiagram
 <section>
   <div class="wrap">
     <h2>Services to build</h2>
-    <p class="prose">Eleven deployables. The domain agents are not services: each ships as a versioned Python package from its own repository, installed into the core agent, with each SME team owning its domain's repo of rules and goldens. A platform team owns the shared tool servers.</p>
+    <p class="prose">Eleven deployables. The domain agents are not services: they ship from the domain agents repository as versioned packages installed into the core agent, each domain a separate fragment whose rules and goldens its SME team owns. A platform team owns the shared tool servers.</p>
     <div class="tbl">
       <table>
         <thead><tr><th>Service</th><th>Kind</th><th>Responsibility</th><th>Scales on</th><th>Calls</th></tr></thead>

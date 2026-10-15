@@ -13,8 +13,7 @@ The system answers any question about why a pharmacy claim behaved the way it di
 |---|---|---|---|
 | Kernel | this repo, `kernel/` (moves to its own repo later) | `rulegraph` | Planner, investigator, synthesis, language layer, memory types, rule store, policy graph, CEL evaluator, toolbox, knowledge sources and composition, domain discovery, evaluation, scaffolding. No agent SDK in core modules. Extras: `adk` (Google ADK workflow, A2A server, ADK model completion), `mcp` (MCP server). |
 | Pharmacy base | this repo, `base/` (moves later) | `pharmacy_base` | Base pack: manifest and wording, ontology, reject codes, the seven top concepts with adjudication order, shared claim and plan fields, domain planner procedures, investigator playbook, intents. Claim adapter, toolbox over the claims and plan setup APIs, fixtures, `pharmacy-domains` CLI. |
-| Utilization management agent | its own repo (pilot) | `pharmacy_um` | UM fragment: prior authorization, step therapy and quantity limit concepts, fields, rule domains and rules; UM goldens and tests. |
-| Other domain agents | [madhava-ai-subagent](https://github.com/Satveerskhaira/madhava-ai-subagent) | `pharmacy_agents` | Six fragments (eligibility, coverage, clinical DUR, network, COB, cost share), each its own pack and entry point, until each moves to its own repo. |
+| Domain agents | [madhava-ai-subagent](https://github.com/Satveerskhaira/madhava-ai-subagent) | `pharmacy_agents` | Seven fragments (eligibility, coverage, utilization management, clinical DUR, network, COB, cost share), each its own pack, entry point, goldens and tests. Any one can move to its own repo by moving its folder. |
 | Core agent | this repo, `src/madhava/` | `madhava` | Core planner procedures (`procedures/planner.yaml`), `build()` composing the base with every installed domain package, cross-domain goldens, CLI, A2A and MCP exposure. |
 
 Each domain package registers a `DomainPackage` under the `rulegraph.domains` entry point. At start-up the core composes the base pack with every installed fragment into one knowledge set, builds one toolbox and one episodic memory, and gives them to every domain agent, which runs **in process**: domains share context and memory without a network hop. Only the core is exposed over a network (A2A, MCP). Knowledge loads through a source interface (`DirectorySource` today); a MongoDB-backed source can replace the files later without changing the agents. The kernel knows nothing about pharmacy: all domain words come from the packs and the claim adapter.
@@ -68,7 +67,7 @@ Domain agents run two kinds of procedure:
 
 ## 4. Knowledge model
 
-All knowledge is plain YAML, reviewed through pull requests and validated in CI. It is split into a **base pack** (`base/src/pharmacy_base/pack/`) and one **fragment** per domain agent in that domain's package (`pack/` in the UM repo, `packs/<agent>/` in the subagent repo). The base manifest names the record and reference roots (`claim`, `plan`), the nouns used in answers and tool names, and pharmacy wording (for example "as adjudicated", "The member paid ..."); a fragment's manifest says `kind: fragment` and `extends: pharmacy-claims`. Composition refuses conflicts (the same concept, notation, rule domain or field defined twice). Each domain repo validates its fragment on the base alone (`pharmacy-domains validate`); `madhava validate` checks everything installed together with the core procedures.
+All knowledge is plain YAML, reviewed through pull requests and validated in CI. It is split into a **base pack** (`base/src/pharmacy_base/pack/`) and one **fragment** per domain agent (`packs/<agent>/` in the domain agents repo). The base manifest names the record and reference roots (`claim`, `plan`), the nouns used in answers and tool names, and pharmacy wording (for example "as adjudicated", "The member paid ..."); a fragment's manifest says `kind: fragment` and `extends: pharmacy-claims`. Composition refuses conflicts (the same concept, notation, rule domain or field defined twice). Each domain repo validates its fragment on the base alone (`pharmacy-domains validate`); `madhava validate` checks everything installed together with the core procedures.
 
 | In the base | In each domain fragment |
 |---|---|
@@ -231,7 +230,7 @@ verify r2: all outcomes explained
 | Domain gap round | Domain agent, per task or question | Coverage of the task's tokens within its branch | All explained, round limit, or branch swept; the rest is reported as gaps |
 | Widen if unexplained | Investigator, per task | CEL evaluator | A rule fires, or one widened search is done |
 | Session follow-up | Core, per session | Coverage check per answer | The user stops |
-| Improvement | Offline, on every change | Golden match rate (core 13/13; UM 5/5, other domains 10/10), gap log | Each change must keep the match rate |
+| Improvement | Offline, on every change | Golden match rate (core 13/13, domain 15/15), gap log | Each change must keep the match rate |
 
 A model never decides to loop, and never grades its own answer. Each task also runs under a deadline (`Settings.agent_deadline_s`, default 4 s); a late agent becomes an error report and the answer goes out with what is confirmed.
 
@@ -302,10 +301,10 @@ Every planner runs a fixed loop, investigators run fixed playbooks, and loops ar
 
 ## 12. Extending
 
-- **Add a rule** (in the owning domain's repo): a card under `domains/<rule_domain>/rules/`, listed in a new release in `domain.yaml`; run `pharmacy-domains validate` and `pharmacy-domains eval goldens/domain_goldens.yaml`, then bump that package's pin here and run `madhava eval`.
+- **Add a rule** (in the domain agents repo, under the owning domain's fragment): a card under `packs/<agent>/domains/<rule_domain>/rules/`, listed in a new release in `domain.yaml`; run `pharmacy-domains validate` and `pharmacy-domains eval goldens/domain_goldens.yaml`, then bump that package's pin here and run `madhava eval`.
 - **Change a rule:** a new version file and a new release with `effective_from`; never edit a published version.
-- **Add a domain agent:** a top concept with `agent` and `precedence` in the base; a new domain repo with its fragment (leaves with `rule_domain`, fields, rule domains, rules), entry point and domain goldens; then pin it here and add core goldens.
-- **Move a domain into its own repo:** move `packs/<agent>/` and its entry point from the subagent repo to a new package (the UM repo is the template); nothing else changes.
+- **Add a domain agent:** a top concept with `agent` and `precedence` in the base; a new fragment in the domain agents repo (leaves with `rule_domain`, fields, rule domains, rules), entry point and domain goldens; then bump the pin here and add core goldens.
+- **Move a domain into its own repo:** move `packs/<agent>/`, its goldens and its entry point to a new package that depends on `pharmacy-base`; nothing else changes.
 - **Add a question type:** a procedure in the core `planner.yaml` and in the pack's `domain_planner.yaml`, and an intent pattern in `intents.yaml`.
 - **Connect real APIs:** set the URLs in section 8; extend the catalog with real field paths and pointers.
 - **Build a new system on the kernel:** `rulegraph new subagents ...` then `rulegraph new core ...` (see `kernel/README.md` and the skill).

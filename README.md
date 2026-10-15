@@ -8,8 +8,7 @@ This repository holds the **core agent**. Since v0.2 the system is split three w
 |---|---|---|
 | Kernel (`rulegraph`) | [`kernel/`](kernel/) (moves to its own repo later) | SDK-neutral planner, investigators, memory, rule graph, CEL evaluator, toolbox; ADK and MCP adapters as extras; `rulegraph new` scaffolding |
 | Pharmacy base (`pharmacy-base`) | [`base/`](base/) (moves later) | Base pack shared by every domain (ontology, reject codes, top concepts with adjudication order, shared fields, procedures), claim adapter, toolbox, fixtures, `pharmacy-domains` CLI |
-| Utilization management agent (`pharmacy-um-agent`) | its own repo (pilot) | UM fragment: concepts, fields, rule domains and rules; UM goldens |
-| Other domain agents (`pharmacy-agents`) | [madhava-ai-subagent](https://github.com/Satveerskhaira/madhava-ai-subagent) | Six fragments, one per domain, until each moves to its own repo |
+| Domain agents (`pharmacy-agents`) | [madhava-ai-subagent](https://github.com/Satveerskhaira/madhava-ai-subagent) | Seven fragments, one per domain, each with its own entry point, goldens and tests |
 | Core agent (`madhava`) | this repo, `src/madhava/` | Core planner procedures, cross-domain goldens, external interfaces (A2A, MCP, ADK workflow) |
 
 Each domain agent ships as a knowledge fragment that extends the base and registers itself under the `rulegraph.domains` entry point; the core composes the base with every installed domain package. The core plans across domain agents, which run in process and share its context and memory (no A2A between core and domain agents). Each domain agent plans within its taxonomy branch, can answer directly, and reports findings and gaps to the core. The core checks every observed outcome is explained, runs one gap round if not, and answers with rule citations, stating any gap instead of guessing. Only the core is exposed over A2A.

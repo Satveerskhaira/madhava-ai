@@ -1,7 +1,5 @@
 # Kernel and pharmacy base from this repo; domain packages from their own repos (pinned).
 -e ./kernel[adk,mcp,dev]
 -e ./base[dev]
-pharmacy-agents @ git+https://github.com/Satveerskhaira/madhava-ai-subagent.git@851de7a
-# Utilization management (pilot repo): add its pin here once the repository exists, e.g.
-# pharmacy-um-agent @ git+https://github.com/Satveerskhaira/<um-repo>.git@<commit>
+pharmacy-agents @ git+https://github.com/Satveerskhaira/madhava-ai-subagent.git@c575dde
 -e .[dev]
