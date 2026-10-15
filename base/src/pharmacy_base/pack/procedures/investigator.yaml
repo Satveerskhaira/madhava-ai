@@ -1,0 +1,40 @@
+# Investigator playbook (procedural memory).
+#
+# Every rule-domain investigator runs the same playbook, step by step. The
+# steps are fixed, never chosen by a model, so an investigator cannot skip
+# evaluation or overrides. Notes per domain agent appear in agent cards.
+#
+# Steps:
+#   recall_rules          graph search for candidate rules inside the
+#                         investigator's rule domain, filtered to the rule sets in force
+#   resolve_inputs        fetch only the claim and plan fields those rules read
+#   evaluate              run each rule's CEL condition, in rule order
+#   apply_overrides       a fired rule whose override also fires is overridden
+#   widen_if_unexplained  if nothing explains the task's outcomes, search once
+#                         more by text and broader concepts (bounded loop)
+#   phrase                fill the rule templates with evidence values
+
+# Per-agent notes live in each domain fragment under `agents`.
+
+default:
+  steps:
+  - do: recall_rules
+    k: 12
+  - do: resolve_inputs
+  - do: evaluate
+  - do: apply_overrides
+  - do: widen_if_unexplained
+    max: 1
+  - do: phrase
+  modes:
+    explain:
+      outcome_types:
+      - reject
+      - pricing
+      - info
+      - override
+    what_if:
+      outcome_types:
+      - pricing
+      - override
+      ignore_actuals: true

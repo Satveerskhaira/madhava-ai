@@ -44,8 +44,11 @@ def domain_agent(kn: Knowledge, toolbox: Toolbox, name: str, *, language: Langua
 def domain_agents(kn: Knowledge, toolbox: Toolbox, *, names: list[str] | None = None,
                   language: Language | None = None, episodic: EpisodicMemory | None = None,
                   settings: Settings | None = None) -> dict[str, Planner]:
-    return {n: domain_agent(kn, toolbox, n, language=language, episodic=episodic, settings=settings)
-            for n in (names or list(kn.taxonomy.agents))}
+    """One planner per domain agent whose rule domains are loaded (a base pack may name agents whose
+    domain package is not installed; those are skipped)."""
+    if names is None:
+        names = [n for n in kn.taxonomy.agents if any(rd in kn.rules.domains for rd in kn.taxonomy.rule_domains(n))]
+    return {n: domain_agent(kn, toolbox, n, language=language, episodic=episodic, settings=settings) for n in names}
 
 
 def core_planner(kn: Knowledge, toolbox: Toolbox, agents: Mapping[str, Executor], *, name: str = "core",

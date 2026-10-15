@@ -1,0 +1,9 @@
+# Intent patterns for understanding questions without a model (case-insensitive regex).
+patterns:
+  what_if_approved: "\\bif (it|this|they|the claim)?\\s*(were|was|is|gets?|had been)?\\s*approved\\b|\\bonce approved\\b|\\bafter approval\\b|\\bif (pa|prior auth\\w*) (is|were|was) (approved|granted)"
+  compare_current: "\\b(today|right now|currently|current rules|still|anymore|any ?more|now)\\b|\\bwhat changed\\b|\\bwould (it|this) (still )?(pay|reject)"
+  explain_cost: "\\b(pay|paid|cost|costs|copay|co-pay|coinsurance|deductible|price|priced|charged|owe|\\$\\s?\\d)"
+  explain_outcome: "\\b(why|reason|explain|reject\\w*|denied|deny|declined|not covered|isn't covered|wasn't covered)\\b"
+  define_term: "^\\s*(what (is|does|are)|define|meaning of)\\b"
+# Words that make a "would it still pay today?" question about cost rather than the outcome.
+cost_words: "copay|co-pay|coinsurance|deductible|cost|price|owe|\\$"

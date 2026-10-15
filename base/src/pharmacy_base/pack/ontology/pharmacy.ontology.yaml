@@ -1,0 +1,83 @@
+# Pharmacy claims domain ontology.
+#
+# Classes and relations for the claim-explanation world. The ontology is not
+# decorative: the field catalog must place every field on a class here, and the
+# policy graph may only create edges whose relation, domain and range are
+# declared here (checked when the graph is built). Exportable as JSON-LD.
+#
+# `aligns_with` records the closest standard concept so data can be mapped to
+# NCPDP and HL7 FHIR without renaming.
+
+namespace: https://example.org/pharmacy/ontology#
+version: "2026.10"
+
+classes:
+  Claim:
+    description: A pharmacy claim transaction and its adjudication response.
+    aligns_with: [NCPDP Telecommunication D.0 claim request/response, FHIR Claim, FHIR ExplanationOfBenefit]
+  ClaimResponse:
+    description: Status, reject codes and pricing returned by adjudication.
+    aligns_with: [NCPDP Response Status and Pricing segments, FHIR ClaimResponse]
+  Member:
+    description: The covered person, with coverage dates.
+    aligns_with: [FHIR Patient, FHIR Coverage]
+  Drug:
+    description: The dispensed product identified by NDC and GPI.
+    aligns_with: [NCPDP Product/Service ID (NDC), FHIR Medication]
+  Pharmacy:
+    description: The dispensing pharmacy, its network and channel.
+    aligns_with: [NCPDP Service Provider ID (NPI), FHIR Organization]
+  ClaimHistory:
+    description: Prior fills used for refill and step checks.
+    aligns_with: [FHIR MedicationDispense]
+  Plan:
+    description: A benefit plan with effective-dated setup versions.
+    aligns_with: [NCPDP Formulary and Benefit, FHIR InsurancePlan]
+  PlanVersion:
+    description: The plan setup in force for a date range.
+  FormularyEntry:
+    description: A drug's formulary status, tier and edits on a plan.
+    aligns_with: [NCPDP Formulary and Benefit formulary status, Da Vinci US Drug Formulary]
+  BenefitSetting:
+    description: A plan setup field outside the formulary (cost share, limits, DUR thresholds).
+  Accumulator:
+    description: Running totals such as deductible and out-of-pocket remaining.
+  Outcome:
+    description: One observable result of adjudication, as an outcome token.
+  Concept:
+    description: A taxonomy concept (SKOS Concept).
+    aligns_with: [SKOS Concept]
+  Rule:
+    description: An SME-approved business rule card version.
+  RuleSet:
+    description: An effective-dated release of a rule domain.
+  Policy:
+    description: A source document a rule was derived from.
+  Field:
+    description: A claim or plan field path in the field catalog.
+  Finding:
+    description: The result of evaluating one rule against one claim.
+  Evidence:
+    description: One input value a finding relied on, with its source path.
+
+relations:
+  # taxonomy
+  broader:        {domain: Concept, range: Concept, aligns_with: skos:broader}
+  related:        {domain: Concept, range: Concept, aligns_with: skos:related}
+  classifies:     {domain: Concept, range: Outcome, aligns_with: skos:notation}
+  # rules and policies
+  explains:       {domain: Rule, range: Outcome}
+  in_domain:      {domain: Rule, range: Concept}
+  reads:          {domain: Rule, range: Field}
+  overridden_by:  {domain: Rule, range: Rule}
+  derived_from:   {domain: Rule, range: Policy}
+  member_of:      {domain: Rule, range: RuleSet}
+  # data
+  describes:      {domain: Field, range: Concept}
+  has_member:     {domain: Claim, range: Member}
+  has_drug:       {domain: Claim, range: Drug}
+  dispensed_by:   {domain: Claim, range: Pharmacy}
+  has_response:   {domain: Claim, range: ClaimResponse}
+  adjudicated_under: {domain: Claim, range: PlanVersion}
+  has_entry:      {domain: PlanVersion, range: FormularyEntry}
+  supported_by:   {domain: Finding, range: Evidence}

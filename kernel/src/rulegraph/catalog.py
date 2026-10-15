@@ -42,9 +42,12 @@ class FieldCatalog:
 
     @classmethod
     def load(cls, path: Path) -> "FieldCatalog":
-        data = yaml.safe_load(path.read_text())
+        return cls.from_entries(yaml.safe_load(path.read_text())["fields"])
+
+    @classmethod
+    def from_entries(cls, entries: list[dict[str, Any]]) -> "FieldCatalog":
         out = []
-        for entry in data["fields"]:
+        for entry in entries:
             known = {k: v for k, v in entry.items() if k in _KNOWN}
             out.append(FieldDef(**known, extra={k: v for k, v in entry.items() if k not in _KNOWN}))
         return cls(out)

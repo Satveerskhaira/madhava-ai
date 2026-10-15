@@ -1,0 +1,115 @@
+# Field catalog: the closed vocabulary rules may read.
+#
+# Every rule input must be a path listed here (checked in CI). Each field sits
+# on an ontology class (`entity`) and a taxonomy concept (`concept`), which is
+# how the policy graph links fields to rules and to the questions they answer.
+#
+# claim.* fields (source: record) come from the claims API, plus claims history
+#   and accumulator lookups made by the claim adapter. `ncpdp` gives the
+#   Telecommunication D.0 field where one exists; verify against your payer sheet.
+# plan.* fields (source: reference) come from the benefit setup API, resolved
+#   by date of service.
+#   `pointer` is a JSON Pointer into the benefit setup payload. `{name}`
+#   placeholders are filled from `params`, which may name a claim field or
+#   another plan field (resolved first).
+
+# Base pack: fields read by several domains (or none). Each field's concept is a top concept,
+# so the base never depends on a fragment. Domain-only fields live in that domain's fragment.
+
+fields:
+- path: claim.id
+  source: record
+  entity: Claim
+  type: string
+  concept: eligibility
+  description: Claim identifier
+- path: claim.adjudicatedAt
+  source: record
+  entity: ClaimResponse
+  type: date
+  concept: eligibility
+  description: Date the claim was adjudicated
+- path: claim.status
+  source: record
+  entity: ClaimResponse
+  type: string
+  ncpdp: 112-AN
+  concept: eligibility
+  description: Transaction response status (paid or rejected)
+- path: claim.rejectCodes
+  source: record
+  entity: ClaimResponse
+  type: list
+  ncpdp: 511-FB
+  concept: eligibility
+  description: Reject codes returned on the response
+- path: claim.planId
+  source: record
+  entity: Claim
+  type: string
+  concept: eligibility
+  description: Plan the claim adjudicated under
+- path: claim.drug.ndc
+  source: record
+  entity: Drug
+  type: string
+  ncpdp: 407-D7
+  concept: coverage
+  description: Product/Service ID (NDC) submitted
+- path: claim.drug.gpi
+  source: record
+  entity: Drug
+  type: string
+  concept: coverage
+  description: Drug classification key used to look up formulary entries
+- path: claim.drug.name
+  source: record
+  entity: Drug
+  type: string
+  concept: coverage
+  description: Drug name for explanations
+- path: claim.pharmacy.channel
+  source: record
+  entity: Pharmacy
+  type: string
+  concept: network
+  description: Dispensing channel
+  decoded_values:
+    retail: Retail pharmacy
+    mail: Mail order
+    specialty: Specialty pharmacy
+- path: claim.daysSupply
+  source: record
+  entity: Claim
+  type: integer
+  ncpdp: 405-D5
+  concept: um
+  description: Days supply dispensed
+- path: claim.fillNumber
+  source: record
+  entity: Claim
+  type: integer
+  ncpdp: 403-D3
+  concept: dur
+  description: Fill number (0 for a new prescription)
+- path: claim.pricing.patientPay
+  source: record
+  entity: ClaimResponse
+  type: number
+  ncpdp: 505-F5
+  concept: cost_share
+  description: Patient pay amount
+- path: plan.formulary.drug.tier
+  source: reference
+  entity: FormularyEntry
+  type: integer
+  pointer: /formulary/drugList/{gpi}/tier
+  params:
+    gpi: claim.drug.gpi
+  concept: coverage
+  description: Formulary tier of the drug
+  decoded_values:
+    1: Generic
+    2: Preferred brand
+    3: Non-preferred brand
+    4: Specialty
