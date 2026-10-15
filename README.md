@@ -2,55 +2,49 @@
 
 A pharmacy claim explainability layer: agents answer "why did this claim behave this way?" using evidence from claim data, plan setup data (resolved as of date of service), and SME-approved, effective-dated business rules.
 
-A planner agent routes each question through an adjudication taxonomy to seven domain agents that run in parallel over A2A. Each domain agent searches a rules/policy graph for candidate rules, reads only the claim and benefit setup fields those rules need, evaluates them with CEL, and returns findings with evidence. The planner checks that every observed outcome is explained, loops once when it is not, and answers with rule citations, stating any gap instead of guessing.
+This repository holds the **core agent**. Since v0.2 the system is split three ways:
+
+| Part | Where | What it is |
+|---|---|---|
+| Kernel (`rulegraph`) | [`kernel/`](kernel/) (moves to its own repo later) | SDK-neutral planner, investigators, memory, rule graph, CEL evaluator, toolbox; ADK and MCP adapters as extras; `rulegraph new` scaffolding |
+| Domain agents (`pharmacy-agents`) | [madhava-ai-subagent](https://github.com/Satveerskhaira/madhava-ai-subagent) | Pharmacy knowledge pack, claim record adapter, fixtures; seven domain agents, each a planner over its rule-domain investigators |
+| Core agent (`madhava`) | this repo, `src/madhava/` | Core planner procedures, cross-domain goldens, external interfaces (A2A, MCP, ADK workflow) |
+
+The core plans across domain agents, which are imported in process (no A2A between core and domain agents). Each domain agent plans within its taxonomy branch, can answer directly, and reports findings and gaps to the core. The core checks every observed outcome is explained, runs one gap round if not, and answers with rule citations, stating any gap instead of guessing. Only the core is exposed over A2A.
 
 ## Quick start
 
 ```bash
-pip install -e ".[dev]"
-madhava validate        # CI checks: catalog links, CEL compiles, releases, ontology
-madhava eval            # golden claims (13/13)
+pip install -r requirements-dev.txt   # kernel from ./kernel, domain agents from their repo, then this package
+madhava validate
+madhava --today 2026-10-14 eval       # 13/13 golden claims
 madhava ask RX-1001 "Why was this rejected, and what would it cost if approved?"
-madhava ask RX-1007 "Why did this reject?" --trace
-madhava ask RX-1012 "Would this claim still pay today?"
-pytest                  # 44 tests, including A2A and MCP end to end
+madhava ask RX-1007 "Why did this reject?" --trace      # domain gap -> core gap round -> network agent
+madhava ask RX-1001 "Why was this rejected?" --workflow # core as an ADK workflow graph
+madhava serve --port 8100             # core over A2A
+madhava mcp                           # toolbox + core over MCP (stdio)
+pytest                                # core 24 tests; kernel tests: pytest kernel/tests
 ```
 
-Sample claims cover every agent: prior authorization, step therapy, quantity and specialty channel limits, refill too soon, drug interaction, exclusion, eligibility, COB, copay, coinsurance and deductible, plus an unexplained code and a rule change after the claim.
+Ask a single domain agent: `pharmacy-agents ask utilization_management RX-1001 "Why was this rejected?"`.
 
 ## Layout
 
 | Path | What it is |
 |---|---|
-| `knowledge/ontology/` | Domain ontology (classes and typed relations), enforced on the policy graph |
-| `knowledge/taxonomy/` | SKOS adjudication taxonomy: agents, precedence, synonyms, outcome notations |
-| `knowledge/catalog/` | Field catalog (NCPDP ids, JSON Pointers into benefit setup) and reject codes |
-| `knowledge/domains/` | Rule cards (CEL) and effective-dated rule sets per rule domain |
-| `knowledge/procedures/` | Procedural memory: planner procedures and the domain agent playbook |
-| `fixtures/` | Synthetic claims and a versioned benefit setup (~12k fields) |
-| `goldens/` | Golden claims replayed by `madhava eval` |
-| `src/madhava/agents/` | Planner, domain agents, synthesis, language layer, registry and A2A transport |
-| `src/madhava/memory/` | Working, episodic, semantic, procedural and taxonomic memory |
-| `src/madhava/rules/` | Rule store, policy graph search, CEL evaluator, CI validation |
-| `src/madhava/tools/` | Claims and benefit setup API clients, toolbox, MCP server |
-| `src/madhava/adk/` | Planner as an ADK 2 workflow graph; domain agents served over A2A |
+| `src/madhava/system.py` | Builds the core planner over the in-process pharmacy domain agents |
+| `src/madhava/procedures/planner.yaml` | Core planner procedures (procedural memory) |
+| `src/madhava/cli.py` | `ask`, `eval`, `validate`, `cards`, `serve` (A2A), `mcp`, `gaps` |
+| `goldens/goldens.yaml` | Cross-domain golden claims |
+| `kernel/` | The `rulegraph` kernel package (see its README) |
+| `.claude/skills/rule-graph-agent-system/` | Claude skill for building core and domain agent projects on the kernel |
 
 ## Docs
 
-- [`docs/agent-system.md`](docs/agent-system.md): the agent system: layers, knowledge model, memory types, graph search, loops, standards, scaling
+- [`docs/agent-system.md`](docs/agent-system.md): layers, knowledge model, memory types, graph search, loops, standards, scaling (see its v0.2 note)
 - [`docs/claim-explainability-design.md`](docs/claim-explainability-design.md): initial design (v0.1)
-  - Rule graph: claim fields, rules, plan fields
-  - LLM-assisted rule card generation from existing docs
-  - MongoDB data model with Atlas Vector Search
-  - Git-first rule lifecycle, with a UI option later
-  - Historical rule sets and rule-mode evaluation
-  - MCP tools, guardrails, rollout, open questions
-- [`docs/madhava-architecture.html`](docs/madhava-architecture.html): interactive architecture page (open in a browser)
-  - How it explains: layers, domain agents over A2A, rule cards linked to plan data, trust controls, scaling
-  - End-to-end flow: step-through diagrams for a member question, a rule change and a batch audit
-  - Backend technology: Python and Google ADK for the orchestrator and agents, Java and Spring Boot for MCP tool servers, where model calls happen
-  - Agent layers: how Madhava maps to AI, agents, harness, loops and graphs, with roles and implementation steps for each
+- [`docs/madhava-architecture.html`](docs/madhava-architecture.html): architecture page. It predates v0.2 and still shows domain agents over A2A; now only the core is served over A2A.
 
 ## Status
 
-Reference implementation over synthetic data. The Python toolbox defines the tool contract that the production Java MCP servers will implement. Real claims and benefit setup APIs plug in through `MADHAVA_CLAIMS_URL` and `MADHAVA_BENEFITS_URL`.
+Reference implementation over synthetic data. Real claims and benefit setup APIs plug in through `PHARMACY_CLAIMS_URL`, `PHARMACY_BENEFITS_URL` and `PHARMACY_API_TOKEN` (domain agents package). Set `MADHAVA_EPISODIC_DIR` to keep episodic memory and the gap log on disk.

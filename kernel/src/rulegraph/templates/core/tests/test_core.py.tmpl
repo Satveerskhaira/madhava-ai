@@ -1,0 +1,29 @@
+import asyncio
+from datetime import date
+from pathlib import Path
+
+import pytest
+import yaml
+
+from rulegraph import Settings
+from rulegraph.agent.planner import Planner
+from rulegraph.evaluation import check
+
+from __PACKAGE__ import build
+
+GOLDENS = yaml.safe_load((Path(__file__).resolve().parents[1] / "goldens" / "goldens.yaml").read_text())["goldens"]
+
+
+@pytest.fixture()
+def system():
+    return build(Settings(today=date(2026, 10, 14)))
+
+
+@pytest.mark.parametrize("golden", GOLDENS, ids=[g["record"] for g in GOLDENS])
+def test_core_goldens(system, golden):
+    exp = asyncio.run(system.core.ask(golden["question"], golden["record"]))
+    assert check(exp, golden["expect"]) == [], exp.answer
+
+
+def test_domain_agents_are_in_process_planners(system):
+    assert system.core.executors and all(isinstance(a, Planner) for a in system.core.executors.values())

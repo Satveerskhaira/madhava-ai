@@ -1,0 +1,63 @@
+# Core planner procedures (procedural memory).
+#
+# A procedure is a reviewed playbook for one kind of question: which domain
+# agents to involve, what each must be asked, what counts as "done", and how the planner
+# may loop when something is still unexplained. The planner never improvises
+# these; it selects procedures by intent and runs them. Changes go through
+# pull requests like rule cards.
+#
+# route_from:   where routing seeds come from
+#   outcome_tokens  - reject codes and status on the claim response
+#   amount_tokens   - cost components on the claim response (copay, coinsurance, deductible)
+#   question_concepts - taxonomy concepts recognised in the question
+# speculative: domain agents always asked, so a second round is rarely needed
+# must_explain: tokens the coverage check requires before the answer is final
+# loop.expand: strategies for the gap round, tried in order
+#   policy_graph     - search the rule graph across all domains for rules that explain the gap
+#   related_concepts - follow skos:related links from the gap's concept
+
+procedures:
+  explain_outcome:
+    description: Explain why a claim rejected or paid the way it did.
+    intents: [explain_outcome]
+    route_from: [outcome_tokens, question_concepts]
+    speculative: [eligibility, coverage]
+    task_mode: explain
+    must_explain: outcome_tokens
+    loop: {max_rounds: 2, expand: [policy_graph, related_concepts]}
+
+  explain_cost:
+    description: Explain what the member paid and which cost share rules set it.
+    intents: [explain_cost]
+    route_from: [amount_tokens, question_concepts]
+    speculative: [coverage, cost_share]
+    task_mode: explain
+    must_explain: amount_tokens
+    loop: {max_rounds: 2, expand: [policy_graph, related_concepts]}
+
+  what_if_approved:
+    description: Estimate what the member would pay if a rejected claim were approved.
+    intents: [what_if_approved]
+    speculative: [cost_share]
+    task_mode: what_if
+    must_explain: none
+    loop: {max_rounds: 1, expand: []}
+
+  compare_current:
+    description: >
+      Evaluate the claim under the rules in force when it adjudicated and under
+      today's rules, and report what would differ and which rule release caused it.
+    intents: [compare_current]
+    route_from: [outcome_tokens, question_concepts]
+    speculative: [eligibility, coverage, utilization_management, clinical_dur, network, cob]
+    task_mode: explain
+    must_explain: outcome_tokens
+    rules_modes: [as_decided, current]
+    loop: {max_rounds: 1, expand: []}
+
+  define_term:
+    description: Say what a term, field or outcome code means, from semantic memory.
+    intents: [define_term]
+    task_mode: none
+    must_explain: none
+    loop: {max_rounds: 0, expand: []}

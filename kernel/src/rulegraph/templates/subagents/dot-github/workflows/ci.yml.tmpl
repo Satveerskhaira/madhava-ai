@@ -1,0 +1,14 @@
+name: ci
+on: [pull_request, push]
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements-dev.txt
+      - run: __DIST__ validate
+      - run: __DIST__ --today 2026-10-14 eval
+      - run: pytest -q

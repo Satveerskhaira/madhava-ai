@@ -1,0 +1,53 @@
+"""Build the domain agents. Swap the fixture APIs for HTTP ones to use real services."""
+
+from __future__ import annotations
+
+import os
+from dataclasses import dataclass
+from importlib import resources
+from pathlib import Path
+
+from rulegraph import Knowledge, Settings, Toolbox, domain_agents
+from rulegraph.agent.language import Language
+from rulegraph.agent.planner import Planner
+from rulegraph.memory.episodic import EpisodicMemory
+from rulegraph.tools.apis import FixtureRecordApi, FixtureReferenceApi, HttpRecordApi, HttpReferenceApi
+
+from .record import Adapter
+
+
+def pack_dir() -> Path:
+    return Path(str(resources.files("__PACKAGE__") / "pack"))
+
+
+def fixtures_dir() -> Path:
+    return Path(str(resources.files("__PACKAGE__") / "fixtures"))
+
+
+@dataclass
+class DomainSystem:
+    settings: Settings
+    knowledge: Knowledge
+    toolbox: Toolbox
+    agents: dict[str, Planner]
+
+
+def build_toolbox(knowledge: Knowledge, settings: Settings) -> Toolbox:
+    records_url, references_url = os.environ.get("RECORDS_URL"), os.environ.get("REFERENCES_URL")
+    records = HttpRecordApi(records_url, "/orders/{id}") if records_url else \
+        FixtureRecordApi(fixtures_dir() / "records.yaml", key="records")
+    references = HttpReferenceApi(references_url, "/accounts/{id}/terms?asOf={date}", "/accounts/{id}/terms/versions") \
+        if references_url else FixtureReferenceApi(fixtures_dir() / "references")
+    return Toolbox(knowledge, records, references, Adapter(), settings)
+
+
+def build(settings: Settings | None = None, *, knowledge: Knowledge | None = None, toolbox: Toolbox | None = None,
+          language: Language | None = None, episodic: EpisodicMemory | None = None,
+          names: list[str] | None = None) -> DomainSystem:
+    """Pass `knowledge`/`toolbox` to share them with a core planner."""
+    settings = settings or Settings()
+    knowledge = knowledge or Knowledge.load(pack_dir())
+    toolbox = toolbox or build_toolbox(knowledge, settings)
+    agents = domain_agents(knowledge, toolbox, names=names, language=language,
+                           episodic=episodic or EpisodicMemory(settings.episodic_dir), settings=settings)
+    return DomainSystem(settings, knowledge, toolbox, agents)

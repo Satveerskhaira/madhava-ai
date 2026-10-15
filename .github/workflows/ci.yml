@@ -6,17 +6,28 @@ on:
     branches: [main]
 
 jobs:
-  check:
+  kernel:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install -e ".[dev]"
-      - name: Validate knowledge (rules, catalog, taxonomy, releases)
+      - run: pip install -e "./kernel[adk,mcp,dev]"
+      - name: Kernel tests (scaffolded projects start green)
+        run: pytest -q kernel/tests
+
+  core:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements-dev.txt
+      - name: Validate knowledge pack and core procedures
         run: madhava validate
       - name: Replay golden claims
         run: madhava --today 2026-10-14 eval
       - name: Tests
-        run: pytest -q
+        run: pytest -q tests

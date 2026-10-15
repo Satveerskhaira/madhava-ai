@@ -1,0 +1,40 @@
+# Core planner procedures (procedural memory): which domain agents a kind of
+# question involves, what counts as done, and how the gap round may expand.
+# speculative: agents always asked ("*" = all). must_explain: tokens the coverage check requires.
+procedures:
+  explain_outcome:
+    description: Explain why a record was decided the way it was.
+    intents: [explain_outcome]
+    route_from: [outcome_tokens, question_concepts]
+    task_mode: explain
+    must_explain: outcome_tokens
+    loop: {max_rounds: 2, expand: [policy_graph, related_concepts]}
+  explain_cost:
+    description: Explain an amount and the rules that set it.
+    intents: [explain_cost]
+    route_from: [amount_tokens, question_concepts]
+    task_mode: explain
+    must_explain: amount_tokens
+    loop: {max_rounds: 2, expand: [policy_graph, related_concepts]}
+  what_if_approved:
+    description: Estimate amounts if a rejected record were approved.
+    intents: [what_if_approved]
+    speculative: [__AMOUNT_AGENT__]
+    task_mode: what_if
+    must_explain: none
+    loop: {max_rounds: 1, expand: []}
+  compare_current:
+    description: Evaluate under the rules in force at decision time and today's rules.
+    intents: [compare_current]
+    route_from: [outcome_tokens, question_concepts]
+    speculative: ["*"]
+    task_mode: explain
+    must_explain: outcome_tokens
+    rules_modes: [as_decided, current]
+    loop: {max_rounds: 1, expand: []}
+  define_term:
+    description: Say what a term, field or code means.
+    intents: [define_term]
+    task_mode: none
+    must_explain: none
+    loop: {max_rounds: 0, expand: []}

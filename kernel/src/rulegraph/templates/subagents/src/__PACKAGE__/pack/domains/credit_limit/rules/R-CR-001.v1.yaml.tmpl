@@ -1,0 +1,14 @@
+id: R-CR-001
+version: 1
+status: approved
+domain: credit_limit
+concept: credit.limit
+intent: Reject when the order would take the account over its credit limit
+outcome: {type: reject, code: CR1}
+record_inputs: [order.amount, order.account.creditUsed]
+reference_inputs: [terms.credit.limit]
+condition: "double(order.amount) + double(order.account.creditUsed) > double(terms.credit.limit)"
+order: 10
+template: "The order of ${{order.amount|money}} plus ${{order.account.creditUsed|money}} already used is over the ${{terms.credit.limit|money}} credit limit."
+source_refs: [{doc: Credit Policy, section: "2.1"}]
+confidence: high

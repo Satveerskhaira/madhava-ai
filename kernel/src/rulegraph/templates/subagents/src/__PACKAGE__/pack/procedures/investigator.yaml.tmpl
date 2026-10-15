@@ -1,0 +1,16 @@
+# Investigator playbook: fixed steps every rule-domain investigator runs.
+default:
+  steps:
+    - {do: recall_rules, k: 12}
+    - {do: resolve_inputs}
+    - {do: evaluate}
+    - {do: apply_overrides}
+    - {do: widen_if_unexplained, max: 1}
+    - {do: phrase}
+  modes:
+    explain: {outcome_types: [reject, pricing, info, override]}
+    what_if: {outcome_types: [pricing, override], ignore_actuals: true}
+agents:
+  credit: {notes: Credit is checked first.}
+  fulfillment: {notes: Region and quantity limits come from the account terms in force on the order date.}
+  charges: {notes: Fees are read for the order's delivery region.}

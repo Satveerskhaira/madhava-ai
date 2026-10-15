@@ -1,5 +1,11 @@
 # Madhava agent system: planner, domain agents, memory and the rules/policy graph
 
+> **v0.2 note (kernel split).** The code described here now lives in three places: the SDK-neutral `rulegraph` kernel (`kernel/`), the pharmacy domain agents package ([madhava-ai-subagent](https://github.com/Satveerskhaira/madhava-ai-subagent): knowledge pack, claim adapter, fixtures) and the core agent (`src/madhava/`). Changes from what follows:
+> - Every domain agent is now a **planner** (same loop as the core: understand, plan, act, verify with its own bounded gap round, synthesize) scoped to its taxonomy branch, over rule-domain **investigators** that run the fixed playbook described below.
+> - Core to domain agents is **in process** (the core imports the package). A2A is used only to expose the core (`madhava serve`). `serve-agents` and `--a2a-base-port` are gone.
+> - Paths: `knowledge/` is now `pharmacy_agents/pack/`; `src/madhava/agents|memory|rules|tools|adk` are now `rulegraph/agent|memory|rules|tools|adapters`. Core procedures are in `src/madhava/procedures/planner.yaml`.
+> - Rule cards use `record_inputs` / `reference_inputs`; the rules mode `as_adjudicated` is now `as_decided` (still worded "as adjudicated" in answers).
+
 **Status:** reference implementation (v0.1) over synthetic sample data.
 **Builds on:** [`claim-explainability-design.md`](claim-explainability-design.md) (rule cards, effective-dated rule sets, confidence labels, MCP tools) and [`madhava-architecture.html`](madhava-architecture.html) (Python ADK agents, A2A, Java MCP tool servers).
 
