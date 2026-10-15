@@ -75,11 +75,14 @@ class PackManifest:
 
     @classmethod
     def load(cls, root: Path) -> "PackManifest":
-        data = yaml.safe_load((root / "pack.yaml").read_text())
+        return cls.from_dict(yaml.safe_load((root / "pack.yaml").read_text()), root)
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any], root: Path | None = None) -> "PackManifest":
         roots = data.get("roots", {})
         nouns = data.get("nouns", {})
         return cls(
-            root=root,
+            root=root or Path("."),
             name=data["name"],
             version=str(data.get("version", "0")),
             agent_prefix=data.get("agent_prefix", data["name"]),
@@ -88,14 +91,14 @@ class PackManifest:
             record_noun=nouns.get("record", "record"),
             reference_noun=nouns.get("reference", "reference data"),
             codes_kind=data.get("codes_kind", "reject"),
-            files=data["files"],
+            files=data.get("files", {}),
             rules_modes={"as_decided": "as decided", "current": "current", "as_of": "as of",
                          **data.get("rules_modes", {})},
             token_labels={**DEFAULT_TOKEN_LABELS, **data.get("token_labels", {})},
             phrases={**DEFAULT_PHRASES, **data.get("phrases", {})},
             extra={k: v for k, v in data.items() if k not in {
                 "name", "version", "agent_prefix", "roots", "nouns", "codes_kind", "files", "rules_modes",
-                "token_labels", "phrases"}},
+                "token_labels", "phrases", "kind", "extends"}},
         )
 
     def path(self, key: str) -> Path:

@@ -1,0 +1,95 @@
+# Adjudication taxonomy (taxonomic memory).
+#
+# Modelled on W3C SKOS: each concept has a prefLabel, altLabels (synonyms used
+# to understand questions), a definition, a broader concept, related concepts
+# and notations (the outcome tokens it classifies). `narrower` is derived.
+#
+# Two levels matter at runtime:
+#   - Top concepts carry `agent`: the domain agent that owns that branch.
+#     Their `precedence` is the adjudication order used to pick the primary
+#     reason when several rules fire.
+#   - Leaf concepts carry `rule_domain`: the unit rules are authored, owned
+#     and released in (see knowledge/domains/<rule_domain>).
+#
+# Outcome tokens: reject:<NCPDP reject code>, price:<component>, status:<paid|rejected>.
+
+# Base pack: only the top concepts (one per domain agent, with decision order) live here.
+# Each domain fragment adds the concepts under its top concept.
+
+scheme:
+  id: pharmacy:adjudication
+  namespace: https://example.org/pharmacy/taxonomy/
+  prefLabel: Pharmacy claim adjudication
+  version: '2026.10'
+concepts:
+- id: eligibility
+  prefLabel: Eligibility
+  definition: Whether the member had active pharmacy coverage on the date of service.
+  agent: eligibility
+  precedence: 10
+  altLabels:
+  - eligibility
+  - eligible
+  - member coverage
+  - enrolled
+  - enrollment
+- id: coverage
+  prefLabel: Formulary and coverage
+  definition: Whether the drug is covered by the plan's formulary and where it is placed.
+  agent: coverage
+  precedence: 20
+  altLabels:
+  - formulary
+  - covered drug
+  - coverage
+- id: um
+  prefLabel: Utilization management
+  definition: Clinical and quantity controls applied before a drug is paid.
+  agent: utilization_management
+  precedence: 30
+  altLabels:
+  - utilization management
+  - um
+- id: dur
+  prefLabel: Clinical safety (DUR)
+  definition: Drug utilization review checks for safety and appropriate use.
+  agent: clinical_dur
+  precedence: 40
+  altLabels:
+  - dur
+  - drug utilization review
+  - safety
+  - clinical edit
+- id: network
+  prefLabel: Pharmacy network
+  definition: Whether the pharmacy and channel may dispense the drug under this plan.
+  agent: network
+  precedence: 50
+  altLabels:
+  - network
+  - pharmacy
+  - in network
+  - out of network
+- id: cob
+  prefLabel: Coordination of benefits
+  definition: Whether another payer must be billed first.
+  agent: cob
+  precedence: 60
+  altLabels:
+  - cob
+  - other coverage
+  - primary payer
+  - secondary
+- id: cost_share
+  prefLabel: Cost share
+  definition: What the member pays, from copay, coinsurance and deductible rules.
+  agent: cost_share
+  precedence: 70
+  altLabels:
+  - cost
+  - cost share
+  - member pay
+  - patient pay
+  - price
+  - pricing
+  - out of pocket

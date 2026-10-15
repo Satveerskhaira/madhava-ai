@@ -2,6 +2,10 @@
 
 A pack is a folder (usually inside the domain agents package, `src/<pkg>/pack/`) with a `pack.yaml` manifest. `rulegraph validate <pack>` (or `<dist> validate`) checks it. YAML gotcha: in flow mappings `{...}`, quote values containing a comma, a colon-space, or a `?`.
 
+## Base packs and fragments
+
+A pack is either a **base** (`kind: base`, the default) or a **fragment** (`kind: fragment`, `extends: <base name>`, `agents: [...]`) that adds domains to a base. A fragment's `files` may name only `taxonomy` (a `concepts:` list, no scheme), `catalog`, `codes`, `domains`, `ontology` (extra classes or relations) and `investigator` (`agents:` notes only). `Knowledge.compose([base, *fragments])` merges them and fails on conflicts; `Knowledge.load(dir)` is a single base pack. See `domain-repos.md` for what belongs where.
+
 ## pack.yaml
 
 ```yaml

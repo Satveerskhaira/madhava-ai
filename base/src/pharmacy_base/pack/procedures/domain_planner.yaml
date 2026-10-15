@@ -1,0 +1,76 @@
+# Domain agent procedures (procedural memory).
+#
+# Every domain agent is a planner scoped to its taxonomy branch. Its executors
+# are rule-domain investigators. It answers two kinds of request:
+#
+#   delegated_*  a task from the core planner: explain these outcome tokens,
+#                or estimate a what-if, inside this domain
+#   the rest     a question asked of this agent directly; outcomes outside the
+#                agent's scope are reported as out of scope, not explained
+#
+# route_from: outcome_tokens | amount_tokens | question_concepts | task_tokens | task_concepts | task_hints
+# speculative: rule domains always asked ("*" = every rule domain in scope)
+# sweep_if_unrouted: ask every rule domain in scope when nothing routed
+# loop.expand: policy_graph | related_concepts | sweep_scope (all inside the agent's scope)
+
+procedures:
+  delegated_explain:
+    description: Explain the outcomes the parent planner routed to this domain.
+    intents: [delegated_explain]
+    route_from: [task_tokens, task_concepts, task_hints]
+    sweep_if_unrouted: true
+    task_mode: explain
+    must_explain: task_tokens
+    loop: {max_rounds: 2, expand: [policy_graph, related_concepts, sweep_scope]}
+
+  delegated_what_if:
+    description: Estimate amounts as if the record had been approved.
+    intents: [delegated_what_if]
+    route_from: [task_concepts, task_hints]
+    sweep_if_unrouted: true
+    task_mode: what_if
+    must_explain: none
+    loop: {max_rounds: 1, expand: []}
+
+  explain_outcome:
+    description: Explain why a claim rejected, from this domain's point of view.
+    intents: [explain_outcome]
+    route_from: [outcome_tokens, question_concepts]
+    sweep_if_unrouted: true
+    task_mode: explain
+    must_explain: outcome_tokens
+    loop: {max_rounds: 2, expand: [policy_graph, related_concepts, sweep_scope]}
+
+  explain_cost:
+    description: Explain what the member paid, from this domain's point of view.
+    intents: [explain_cost]
+    route_from: [amount_tokens, question_concepts]
+    sweep_if_unrouted: true
+    task_mode: explain
+    must_explain: amount_tokens
+    loop: {max_rounds: 2, expand: [policy_graph, related_concepts, sweep_scope]}
+
+  what_if_approved:
+    description: Estimate what the member would pay if a rejected claim were approved.
+    intents: [what_if_approved]
+    sweep_if_unrouted: true
+    task_mode: what_if
+    must_explain: none
+    loop: {max_rounds: 1, expand: []}
+
+  compare_current:
+    description: Compare this domain's rules as adjudicated with today's rules for the claim.
+    intents: [compare_current]
+    route_from: [outcome_tokens, question_concepts]
+    speculative: ["*"]
+    task_mode: explain
+    must_explain: outcome_tokens
+    rules_modes: [as_decided, current]
+    loop: {max_rounds: 1, expand: []}
+
+  define_term:
+    description: Say what a term, field or code means, from semantic memory.
+    intents: [define_term]
+    task_mode: none
+    must_explain: none
+    loop: {max_rounds: 0, expand: []}

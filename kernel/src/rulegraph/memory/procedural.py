@@ -42,7 +42,11 @@ class InvestigatorPlaybook:
 
 
 def _procedures(path: Path) -> dict[str, PlannerProcedure]:
-    raw = yaml.safe_load(path.read_text())["procedures"]
+    return procedures_from(yaml.safe_load(path.read_text()))
+
+
+def procedures_from(doc: dict[str, Any] | None) -> dict[str, PlannerProcedure]:
+    raw = (doc or {}).get("procedures", {})
     out = {}
     for name, spec in raw.items():
         loop = spec.get("loop", {})
@@ -71,17 +75,17 @@ class ProceduralMemory:
         self.intents = intents
 
     @classmethod
-    def load(cls, pack: Any, planner_procedures: Path | None = None) -> "ProceduralMemory":
-        inv = yaml.safe_load(pack.path("investigator").read_text())
+    def from_documents(cls, investigator: dict[str, Any], domain_planner: dict[str, Any] | None = None,
+                       intents: dict[str, Any] | None = None,
+                       planner_procedures: Path | dict[str, Any] | None = None) -> "ProceduralMemory":
         playbook = InvestigatorPlaybook(
-            steps=inv["default"]["steps"],
-            modes=inv["default"].get("modes", {}),
-            notes={k: (v or {}).get("notes", "") for k, v in inv.get("agents", {}).items()},
+            steps=investigator["default"]["steps"],
+            modes=investigator["default"].get("modes", {}),
+            notes={k: (v or {}).get("notes", "") for k, v in (investigator.get("agents") or {}).items()},
         )
-        domain = _procedures(pack.path("domain_planner")) if pack.has("domain_planner") else {}
-        core = _procedures(planner_procedures) if planner_procedures else {}
-        intents = yaml.safe_load(pack.path("intents").read_text()) if pack.has("intents") else {}
-        return cls(core, domain, playbook, intents)
+        core_doc = yaml.safe_load(Path(planner_procedures).read_text()) \
+            if isinstance(planner_procedures, (str, Path)) else planner_procedures
+        return cls(procedures_from(core_doc), procedures_from(domain_planner), playbook, intents or {})
 
     @staticmethod
     def for_intents(procedures: dict[str, PlannerProcedure], intents: list[str]) -> list[PlannerProcedure]:

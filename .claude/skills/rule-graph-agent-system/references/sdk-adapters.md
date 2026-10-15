@@ -8,6 +8,8 @@ The kernel has no agent SDK in its core. Adapters live at the edges, and there a
 | Use a model for understanding and phrasing | `ModelLanguage(taxonomy, intents, complete)` where `complete: async (system: str, user: str) -> str` | any model client |
 | Swap an executor | `Executor`: `name` + `async handle(DomainTask) -> DomainReport` | a remote client, or an SDK agent wrapped to take and return those models (JSON via pydantic) |
 
+Verified API details and pitfalls for the built adapters are in `adapters/google-adk.md` and `adapters/mcp.md`; the other SDK patterns below are untested sketches until their adapters are built.
+
 Rules for every adapter:
 - Put it in an optional module or extra; nothing in the pack, record adapter or kernel core imports it.
 - Keep the deterministic path working with no model (tests and evals run without one).

@@ -25,9 +25,18 @@ Domain agents repo:
 - reference payload slicing (catalog reads a few leaves of a large payload)
 - if an SDK adapter is used, one test through it
 
+Domain repo (one domain per repo):
+- the fragment composes with the base alone and validates; only its agent is built
+- it is registered (`rulegraph.discover(extends=<base>)` finds it)
+- domain goldens, a delegated task, its own gap round, out-of-scope tokens, agent card
+
+Base package:
+- the base validates on its own; composition refuses duplicate concepts, wrong `extends`, missing base
+- record adapter derivations and reference slices on shared fields
+
 Core repo:
 - every core golden
-- domain agents are in-process planners (no transport between core and domain agents)
+- every installed domain package is discovered and composed; domain agents are in-process planners (no transport between core and domain agents)
 - a gap round that follows a domain agent's own gap (check the trace)
 - an unexplained outcome is logged to episodic memory, not guessed
 - current rules mode, session follow-up reuse, a slow agent becoming an error report

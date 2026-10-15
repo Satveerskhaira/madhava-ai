@@ -27,7 +27,10 @@ class Ontology:
 
     @classmethod
     def load(cls, path: Path) -> "Ontology":
-        data = yaml.safe_load(path.read_text())
+        return cls.from_dict(yaml.safe_load(path.read_text()))
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "Ontology":
         relations = {
             name: Relation(name=name, domain=r["domain"], range=r["range"], aligns_with=r.get("aligns_with"))
             for name, r in data["relations"].items()

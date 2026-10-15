@@ -4,14 +4,15 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "madhava"
-version = "0.2.0"
+version = "0.3.0"
 description = "Core agent that explains pharmacy claim outcomes using the pharmacy domain agents"
 readme = "README.md"
 requires-python = ">=3.11"
-# Sources for these are pinned in requirements-dev.txt (kernel in ./kernel, domain agents from their repo).
+# Sources are pinned in requirements-dev.txt: kernel (./kernel) and base (./base) from this repo,
+# domain agent packages from their own repos. Domain packages are discovered at run time.
 dependencies = [
-  "rulegraph[adk,mcp]>=0.1",
-  "pharmacy-agents>=0.1",
+  "rulegraph[adk,mcp]>=0.2",
+  "pharmacy-base>=0.1",
   "uvicorn>=0.30",
 ]
 

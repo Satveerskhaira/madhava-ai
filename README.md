@@ -7,10 +7,11 @@ This repository holds the **core agent**. Since v0.2 the system is split three w
 | Part | Where | What it is |
 |---|---|---|
 | Kernel (`rulegraph`) | [`kernel/`](kernel/) (moves to its own repo later) | SDK-neutral planner, investigators, memory, rule graph, CEL evaluator, toolbox; ADK and MCP adapters as extras; `rulegraph new` scaffolding |
-| Domain agents (`pharmacy-agents`) | [madhava-ai-subagent](https://github.com/Satveerskhaira/madhava-ai-subagent) | Pharmacy knowledge pack, claim record adapter, fixtures; seven domain agents, each a planner over its rule-domain investigators |
+| Pharmacy base (`pharmacy-base`) | [`base/`](base/) (moves later) | Base pack shared by every domain (ontology, reject codes, top concepts with adjudication order, shared fields, procedures), claim adapter, toolbox, fixtures, `pharmacy-domains` CLI |
+| Domain agents (`pharmacy-agents`) | [madhava-ai-subagent](https://github.com/Satveerskhaira/madhava-ai-subagent) | Seven fragments, one per domain, each with its own entry point, goldens and tests |
 | Core agent (`madhava`) | this repo, `src/madhava/` | Core planner procedures, cross-domain goldens, external interfaces (A2A, MCP, ADK workflow) |
 
-The core plans across domain agents, which are imported in process (no A2A between core and domain agents). Each domain agent plans within its taxonomy branch, can answer directly, and reports findings and gaps to the core. The core checks every observed outcome is explained, runs one gap round if not, and answers with rule citations, stating any gap instead of guessing. Only the core is exposed over A2A.
+Each domain agent ships as a knowledge fragment that extends the base and registers itself under the `rulegraph.domains` entry point; the core composes the base with every installed domain package. The core plans across domain agents, which run in process and share its context and memory (no A2A between core and domain agents). Each domain agent plans within its taxonomy branch, can answer directly, and reports findings and gaps to the core. The core checks every observed outcome is explained, runs one gap round if not, and answers with rule citations, stating any gap instead of guessing. Only the core is exposed over A2A.
 
 ## Quick start
 
@@ -26,7 +27,7 @@ madhava mcp                           # toolbox + core over MCP (stdio)
 pytest                                # core 24 tests; kernel tests: pytest kernel/tests
 ```
 
-Ask a single domain agent: `pharmacy-agents ask utilization_management RX-1001 "Why was this rejected?"`.
+Ask a single domain agent: `pharmacy-domains ask utilization_management RX-1001 "Why was this rejected?"`.
 
 ## Layout
 
@@ -37,6 +38,7 @@ Ask a single domain agent: `pharmacy-agents ask utilization_management RX-1001 "
 | `src/madhava/cli.py` | `ask`, `eval`, `validate`, `cards`, `serve` (A2A), `mcp`, `gaps` |
 | `goldens/goldens.yaml` | Cross-domain golden claims |
 | `kernel/` | The `rulegraph` kernel package (see its README) |
+| `base/` | The `pharmacy-base` package (see its README) |
 | `.claude/skills/rule-graph-agent-system/` | Claude skill for building core and domain agent projects on the kernel |
 
 ## Docs
@@ -47,4 +49,4 @@ Ask a single domain agent: `pharmacy-agents ask utilization_management RX-1001 "
 
 ## Status
 
-Reference implementation over synthetic data. Real claims and benefit setup APIs plug in through `PHARMACY_CLAIMS_URL`, `PHARMACY_BENEFITS_URL` and `PHARMACY_API_TOKEN` (domain agents package). Set `MADHAVA_EPISODIC_DIR` to keep episodic memory and the gap log on disk.
+Reference implementation over synthetic data. Real claims and benefit setup APIs plug in through `PHARMACY_CLAIMS_URL`, `PHARMACY_BENEFITS_URL` and `PHARMACY_API_TOKEN` (base package). Set `MADHAVA_EPISODIC_DIR` to keep episodic memory and the gap log on disk.

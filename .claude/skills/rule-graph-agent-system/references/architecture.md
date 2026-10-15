@@ -56,9 +56,13 @@ Rule sets are effective-dated per rule domain. `rules_mode`: `as_decided` (rules
 
 Field catalog paths: `<record root>.*` read from the record; `<reference root>.*` need a JSON Pointer, with `{param}` filled from other catalog paths. Investigators request only declared inputs, so large reference payloads never reach an agent or a model.
 
+## Packages and shared state
+
+Kernel, base package, one package per domain (or several fragments in one package), and the core. At start-up the core composes the base pack with every installed domain fragment into one knowledge set, builds one toolbox and one episodic memory, and passes them to every domain agent. Domain agents therefore share context (the task's context reference, the record fetched once) and memory in process; nothing about a record crosses a network between agents. Knowledge itself can come from files or a database through `KnowledgeSource`.
+
 ## Scaling
 
 - One knowledge pack and one toolbox shared by core and domain agents: a record is fetched once per question.
 - Domain agents scale out by wrapping a remote client as an `Executor` (any transport); nothing else changes.
-- Add domain agents by adding top concepts; add rule domains by adding leaves and folders.
+- Add domain agents by adding a top concept to the base and shipping a domain package; add rule domains by adding leaves and folders to a fragment.
 - Semantic memory can take an embedding function when the corpus grows.
