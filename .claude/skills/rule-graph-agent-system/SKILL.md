@@ -34,7 +34,8 @@ user / any agent SDK --(adapter: ADK workflow, A2A, MCP, your SDK)--> CORE plann
 5. **Agents read slices, not payloads.** Catalog paths map to JSON Pointers. Tasks carry a context reference (ids, dates), never record data.
 6. **Every loop has a verifier and a cap.** Coverage check: every observed outcome token needs a fired rule. Gap rounds are bounded at each level. Still unexplained means say so and log it for experts; never guess.
 7. **The kernel is SDK-neutral.** Agent SDKs are adapters at the edges. Models plug in as a plain `async complete(system, user) -> str`.
-8. **Core to domain agents is in process.** Domain agents are an installed package the core imports. Only the agent you expose (usually the core) gets a network interface. Add a transport between core and domain agents only if they must scale or deploy separately, by wrapping a client as an `Executor`.
+8. **Retrieval explains itself.** Graph hits keep the path that reached them (`outcome:reject:FL1 <-explains- rule:R-FL-001`), so traces show why a rule was considered.
+9. **Core to domain agents is in process.** Domain agents are an installed package the core imports. Only the agent you expose (usually the core) gets a network interface. Add a transport between core and domain agents only if they must scale or deploy separately, by wrapping a client as an `Executor`.
 
 ## Decide what is being built
 
@@ -102,6 +103,22 @@ Only at the edges. ADK is implemented and tested (`rulegraph.adapters.adk`: `bui
 
 Run `validate`, `eval`, `pytest` in each repo; ask a few questions with `--trace` and read the trace (routes, rounds, gaps). Domain agents repo CI installs the kernel; core repo CI installs kernel and domain agents from their pins. Tag releases so pins are reproducible.
 
+## When the pattern does not fit
+
+- The engine already emits a rule trace: read the trace instead of reconstructing it.
+- Outcomes come from a learned model rather than rules: use model explainability (feature attributions), not rule cards.
+- One-off questions over a handful of documents: plain retrieval is enough.
+
+## Delivery checklist
+
+- [ ] `validate` reports OK in every repo; every rule input is in the catalog
+- [ ] Domain goldens per agent (own outcome, amount, out-of-scope token, gap); core goldens cover every agent, an override, a what-if, a gap round, an unexplained code, a compare and a date-resolved reference value; 100% on fixtures
+- [ ] Answers cite rule id and version, state gaps plainly, and name the rules mode, rule sets and reference-data version used
+- [ ] No agent or model receives full records or full reference payloads
+- [ ] Loops are capped at every level and visible in the trace
+- [ ] No SDK import outside adapter modules; the deterministic path runs with no model
+- [ ] Sample data is labelled; code lists and field ids are marked for verification against official sources
+
 ## When reviewing an existing system
 
 Check: models deciding outcomes; rules embedded in code; unbounded loops or loops without a verifier; agents receiving full payloads; domain agents called over a network without need; an SDK imported in core logic; outcome codes with no notation and no goldens; release ranges overlapping; goldens missing for gap and unexplained cases.
@@ -112,4 +129,5 @@ Check: models deciding outcomes; rules embedded in code; unbounded loops or loop
 - `references/knowledge-pack.md`: every pack file with schema and example
 - `references/adapting-a-domain.md`: checklist for replacing the example knowledge
 - `references/sdk-adapters.md`: ADK, A2A, MCP, and patterns for LangGraph, OpenAI Agents SDK, Claude Agent SDK, CrewAI, Semantic Kernel
+- `references/framework-notes.md`: verified ADK 2.12, a2a-sdk 1.2, MCP 2.3 and cel-python 0.5 APIs and pitfalls; read before changing adapter or CEL code
 - `references/testing.md`: goldens, expect keys, tests every project should keep
