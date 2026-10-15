@@ -129,5 +129,6 @@ Check: models deciding outcomes; rules embedded in code; unbounded loops or loop
 - `references/knowledge-pack.md`: every pack file with schema and example
 - `references/adapting-a-domain.md`: checklist for replacing the example knowledge
 - `references/sdk-adapters.md`: ADK, A2A, MCP, and patterns for LangGraph, OpenAI Agents SDK, Claude Agent SDK, CrewAI, Semantic Kernel
-- `references/framework-notes.md`: verified ADK 2.12, a2a-sdk 1.2, MCP 2.3 and cel-python 0.5 APIs and pitfalls; read before changing adapter or CEL code
+- `references/kernel-notes.md`: SDK-neutral details: CEL pitfalls, async and deadlines
+- `references/adapters/<sdk>.md`: verified notes for one adapter, read only when using it: `google-adk.md` (ADK workflow, A2A, ADK models), `mcp.md`. Add a file here when an adapter for another SDK is built and tested
 - `references/testing.md`: goldens, expect keys, tests every project should keep
