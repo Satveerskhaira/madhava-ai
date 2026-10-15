@@ -13,7 +13,7 @@ Every level is the same planner with a different scope and different executors.
 
 ```
 user / any agent SDK --(adapter: ADK workflow, A2A, MCP, your SDK)--> CORE planner
-  CORE planner          executors = domain agents (in process, imported package; no network hop)
+  CORE planner          executors = domain agents (in process, installed packages; no network hop)
     understand -> plan -> act (fan-out) -> verify --gap round (bounded)--> act -> synthesize -> remember
   DOMAIN agent          = planner scoped to one taxonomy branch; executors = rule-domain investigators
     same loop: routes by its own taxonomy branch, sweeps its scope if unrouted, own gap round,
@@ -25,6 +25,21 @@ user / any agent SDK --(adapter: ADK workflow, A2A, MCP, your SDK)--> CORE plann
 
 `Planner` is also an `Executor` (`name` + `async handle(DomainTask) -> DomainReport`). So a domain agent can be used by a core planner, asked directly, tested alone, or put behind any transport. Read `references/architecture.md` for the full design.
 
+Code and knowledge are split so each domain can be owned and released on its own:
+
+```
+rulegraph kernel        planner, investigators, memory, rule graph, CEL, sources, composition, discovery
+base package            base pack (manifest, ontology, codes, top concepts with decision order, shared fields,
+                        shared procedures) + record adapter + toolbox + fixtures + CLI
+domain package / repo   one fragment per domain agent: concepts under its top concept, its fields,
+  (one per domain)      rule domains and rules, investigator notes, domain goldens; entry point
+                        in `rulegraph.domains`
+core repo               core procedures, cross-domain goldens, exposure (A2A, MCP, ...); composes the base
+                        with every installed domain package at start-up
+```
+
+At run time the core builds one knowledge set (base + fragments, from files today or a database later), one toolbox and one episodic memory, and hands them to every domain agent: domains share context and memory in process, not over a network.
+
 ## Design rules, and why
 
 1. **Models never decide outcomes.** Routing, retrieval, evaluation, overrides, precedence and coverage are deterministic. A model only understands the question and phrases the answer (optional, at most two calls). Answers are then auditable, replayable and cheap, and a model cannot invent a reason.
@@ -35,13 +50,15 @@ user / any agent SDK --(adapter: ADK workflow, A2A, MCP, your SDK)--> CORE plann
 6. **Every loop has a verifier and a cap.** Coverage check: every observed outcome token needs a fired rule. Gap rounds are bounded at each level. Still unexplained means say so and log it for experts; never guess.
 7. **The kernel is SDK-neutral.** Agent SDKs are adapters at the edges. Models plug in as a plain `async complete(system, user) -> str`.
 8. **Retrieval explains itself.** Graph hits keep the path that reached them (`outcome:reject:FL1 <-explains- rule:R-FL-001`), so traces show why a rule was considered.
-9. **Core to domain agents is in process.** Domain agents are an installed package the core imports. Only the agent you expose (usually the core) gets a network interface. Add a transport between core and domain agents only if they must scale or deploy separately, by wrapping a client as an `Executor`.
+9. **Core to domain agents is in process.** Domain agents are installed packages the core discovers and imports. Only the agent you expose (usually the core) gets a network interface. Add a transport between core and domain agents only if they must scale or deploy separately, by wrapping a client as an `Executor`.
 
 ## Decide what is being built
 
-- **Domain agents (subagents) repo**: knowledge pack + record adapter + `build()` returning `{agent name: Planner}`. Knows nothing about the core. Usable on its own.
-- **Core agent repo**: depends on the domain agents package, adds core planner procedures (`planner.yaml`), goldens across domains, and the external interface (A2A, MCP, ADK, or another SDK).
-- **Both**, starting from a domain only: build the subagents repo first, then the core.
+- **Base package**: the shared base pack, record adapter, toolbox and fixtures. Built once per business area (one record API). Lives with the core until it needs its own repo.
+- **Domain agent repo** (one per domain, the default when domains have different owners): a fragment pack that extends the base, a `DomainPackage` entry point, domain goldens, tests, CI. Knows nothing about the core or other domains. See `references/domain-repos.md`.
+- **Combined domain agents repo**: several fragments in one package (each still its own fragment and entry point), when one team owns several domains or while splitting gradually. Moving a domain out is moving one folder.
+- **Core agent repo**: depends on the base, discovers installed domain packages, adds core procedures, cross-domain goldens and the external interface (A2A, MCP, ADK, or another SDK).
+- **Single-pack project**: one pack with every domain (what `rulegraph new subagents` scaffolds). Fine to start with; split into base + fragments when domains get separate owners.
 - **Extending** an existing project: skip to the build steps that apply.
 
 ## Build steps
@@ -73,7 +90,7 @@ rulegraph new core --dest <dir> --package <pkg>_core --agents-package <pkg>_agen
 cd <dir> && pip install -r requirements-dev.txt && <dist> validate && <dist> --today <YYYY-MM-DD> eval && pytest
 ```
 
-The subagents template ships a small working example pack (orders: credit, fulfillment, charges) so it starts green. The core template is wired to it. `--dest` may be an empty cloned repo.
+The subagents template ships a small working example pack (orders: credit, fulfillment, charges) so it starts green. The core template is wired to it. `--dest` may be an empty cloned repo. These templates are single-pack; to give each domain its own repo, split the pack into a base and one fragment per domain as in `references/domain-repos.md` (the split is mechanical: fields read by one domain go with it, the rest to the base).
 
 ### 3. Replace the knowledge, one domain agent at a time
 
@@ -101,7 +118,7 @@ Only at the edges. ADK is implemented and tested (`rulegraph.adapters.adk`: `bui
 
 ### 8. Verify and hand over
 
-Run `validate`, `eval`, `pytest` in each repo; ask a few questions with `--trace` and read the trace (routes, rounds, gaps). Domain agents repo CI installs the kernel; core repo CI installs kernel and domain agents from their pins. Tag releases so pins are reproducible.
+Run `validate`, `eval`, `pytest` in each repo; ask a few questions with `--trace` and read the trace (routes, rounds, gaps). Each domain repo's CI installs the kernel and base and tests its fragment alone on the base; the core's CI installs kernel, base and every domain package from their pins and replays cross-domain goldens. Tag releases so pins are reproducible. The kernel's distribution name `rulegraph` is also taken on PyPI by an unrelated project, so always install it from its pinned source (git URL or internal index), never by bare name.
 
 ## When the pattern does not fit
 
@@ -112,6 +129,7 @@ Run `validate`, `eval`, `pytest` in each repo; ask a few questions with `--trace
 ## Delivery checklist
 
 - [ ] `validate` reports OK in every repo; every rule input is in the catalog
+- [ ] Each domain fragment composes with the base alone and passes its own goldens; the core composes all of them with no conflicts
 - [ ] Domain goldens per agent (own outcome, amount, out-of-scope token, gap); core goldens cover every agent, an override, a what-if, a gap round, an unexplained code, a compare and a date-resolved reference value; 100% on fixtures
 - [ ] Answers cite rule id and version, state gaps plainly, and name the rules mode, rule sets and reference-data version used
 - [ ] No agent or model receives full records or full reference payloads
@@ -126,7 +144,8 @@ Check: models deciding outcomes; rules embedded in code; unbounded loops or loop
 ## References
 
 - `references/architecture.md`: levels, loop, memory types, graph search, routing, scaling
-- `references/knowledge-pack.md`: every pack file with schema and example
+- `references/knowledge-pack.md`: every pack file with schema and example; base packs, fragments and composition
+- `references/domain-repos.md`: one repo per domain: what goes in the base and in each domain repo, entry points, sources (files, MongoDB), CI, splitting a single pack
 - `references/adapting-a-domain.md`: checklist for replacing the example knowledge
 - `references/sdk-adapters.md`: ADK, A2A, MCP, and patterns for LangGraph, OpenAI Agents SDK, Claude Agent SDK, CrewAI, Semantic Kernel
 - `references/kernel-notes.md`: SDK-neutral details: CEL pitfalls, async and deadlines

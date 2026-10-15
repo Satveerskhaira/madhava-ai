@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "rulegraph"
-version = "0.1.0"
+version = "0.2.0"
 description = "SDK-agnostic kernel for planner and domain agents that explain decisions over a rules/policy graph"
 readme = "README.md"
 requires-python = ">=3.11"

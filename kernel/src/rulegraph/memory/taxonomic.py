@@ -37,6 +37,13 @@ class Taxonomy:
         for c in concepts:
             if c.broader:
                 self.concepts[c.broader].narrower.append(c.id)
+        # Links to concepts from domain packages that are not loaded are kept aside, not followed.
+        self.unresolved_related: dict[str, list[str]] = {}
+        for c in concepts:
+            missing = [r for r in c.related if r not in self.concepts]
+            if missing:
+                self.unresolved_related[c.id] = missing
+                c.related = [r for r in c.related if r in self.concepts]
         # related is symmetric in SKOS
         for c in concepts:
             for r in c.related:
@@ -58,8 +65,11 @@ class Taxonomy:
     @classmethod
     def load(cls, path: Path) -> "Taxonomy":
         data = yaml.safe_load(path.read_text())
-        concepts = [Concept(**c) for c in data["concepts"]]
-        return cls(data["scheme"], concepts)
+        return cls.from_documents(data["scheme"], data["concepts"])
+
+    @classmethod
+    def from_documents(cls, scheme: dict[str, Any], concepts: list[dict[str, Any]]) -> "Taxonomy":
+        return cls(scheme, [Concept(**c) for c in concepts])
 
     # ------------------------------------------------------------- navigation
     def get(self, concept_id: str) -> Concept:

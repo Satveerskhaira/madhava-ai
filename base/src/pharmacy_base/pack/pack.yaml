@@ -1,0 +1,36 @@
+# Pharmacy claims base pack: what every pharmacy domain agent shares.
+# Domain fragments (one per domain agent, each in its own package) extend it.
+
+name: pharmacy-claims
+version: '2026.10'
+agent_prefix: pharmacy
+roots:
+  record: claim
+  reference: plan
+nouns:
+  record: claim
+  reference: plan setup
+codes_kind: reject
+files:
+  taxonomy: taxonomy/adjudication.taxonomy.yaml
+  ontology: ontology/pharmacy.ontology.yaml
+  catalog: catalog/fields.yaml
+  codes: catalog/reject_codes.yaml
+  investigator: procedures/investigator.yaml
+  domain_planner: procedures/domain_planner.yaml
+  intents: procedures/intents.yaml
+rules_modes:
+  as_decided: as adjudicated
+  current: current
+  as_of: as of
+token_labels:
+  reject: reject {value} ({meaning})
+  price: '{value} amount'
+phrases:
+  amount_paid: 'The member paid {actual} on this fill. Reason: {narrative} {cite}'
+  what_if: 'If approved: {narrative} [{rule}, estimate from submitted cost]'
+  conflict: 'Check: {intent} fires under these rules, but the claim did not reject with {token} [{rule}].'
+  gap: 'Not explained: {token}. No approved rule explains this outcome, so it was logged for SME review rather than
+    guessed.'
+  reference_line: 'Plan setup: {id} version {version} (effective {effective_from}), as of date of service {service_date}.'
+kind: base

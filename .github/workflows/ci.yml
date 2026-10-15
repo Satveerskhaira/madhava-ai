@@ -13,9 +13,11 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install -e "./kernel[adk,mcp,dev]"
+      - run: pip install -e "./kernel[adk,mcp,dev]" -e "./base[dev]"
       - name: Kernel tests (scaffolded projects start green)
         run: pytest -q kernel/tests
+      - name: Base package tests (base pack validates alone, composition refuses conflicts)
+        run: pytest -q base/tests
 
   core:
     runs-on: ubuntu-latest

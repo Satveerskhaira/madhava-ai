@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pharmacy-base"
+version = "0.1.0"
+description = "Shared base for pharmacy claim domain agents: base knowledge pack, claim adapter, toolbox, fixtures, CLI"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = ["rulegraph>=0.2"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[project.scripts]
+pharmacy-domains = "pharmacy_base.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+pharmacy_base = ["pack/**/*.yaml", "fixtures/**/*.yaml"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = ["ignore::UserWarning", "ignore::DeprecationWarning"]

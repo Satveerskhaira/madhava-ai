@@ -36,15 +36,19 @@ class RuleStore:
 
     @classmethod
     def load(cls, directory: Path) -> "RuleStore":
+        return cls.from_documents(read_domain_documents(directory))
+
+    @classmethod
+    def from_documents(cls, documents: list[dict]) -> "RuleStore":
+        """Each document: domain.yaml content plus `rules`, a list of rule card dicts."""
         domains: dict[str, DomainInfo] = {}
         rules: dict[str, RuleCard] = {}
-        for ddir in sorted(p for p in directory.iterdir() if p.is_dir()):
-            meta = yaml.safe_load((ddir / "domain.yaml").read_text())
+        for meta in documents:
             releases = [RuleSet(domain=meta["domain"], **r) for r in meta.get("releases", [])]
             releases.sort(key=lambda r: r.effective_from)
             domains[meta["domain"]] = DomainInfo(meta["domain"], meta["concepts"], meta["owner"], releases)
-            for f in sorted((ddir / "rules").glob("*.yaml")):
-                card = RuleCard(**yaml.safe_load(f.read_text()))
+            for raw in meta.get("rules", []):
+                card = RuleCard(**raw)
                 rules[card.key] = card
         return cls(domains, rules)
 
@@ -109,3 +113,15 @@ class RuleStore:
             "removed": sorted(f"{r}@{ka[r]}" for r in ka.keys() - kb.keys()),
             "changed": sorted(f"{r}@{ka[r]}->{kb[r]}" for r in ka.keys() & kb.keys() if ka[r] != kb[r]),
         }
+
+
+def read_domain_documents(directory: Path) -> list[dict]:
+    """Read the Git layout <domains>/<rule_domain>/{domain.yaml, rules/*.yaml} into documents."""
+    out = []
+    if not directory.exists():
+        return out
+    for ddir in sorted(p for p in directory.iterdir() if p.is_dir()):
+        meta = yaml.safe_load((ddir / "domain.yaml").read_text())
+        meta["rules"] = [yaml.safe_load(f.read_text()) for f in sorted((ddir / "rules").glob("*.yaml"))]
+        out.append(meta)
+    return out
