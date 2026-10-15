@@ -1,0 +1,14 @@
+id: R-FL-002
+version: 1
+status: approved
+domain: quantity
+concept: fulfillment.quantity
+intent: Reject when the quantity is above the account's per-order limit
+outcome: {type: reject, code: FL2}
+record_inputs: [order.quantity]
+reference_inputs: [terms.limits.maxQuantity]
+condition: "has(terms.limits.maxQuantity) && order.quantity > terms.limits.maxQuantity"
+order: 20
+template: "{{order.quantity}} units is above the {{terms.limits.maxQuantity}}-unit limit per order."
+source_refs: [{doc: Fulfillment Guide, section: "1.4"}]
+confidence: high

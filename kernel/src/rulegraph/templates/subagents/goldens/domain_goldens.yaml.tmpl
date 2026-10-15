@@ -1,0 +1,5 @@
+goldens:
+  - {agent: credit, record: ORD-1, question: "Why was this order rejected?", expect: {primary: R-CR-001, confidence: confirmed}}
+  - {agent: fulfillment, record: ORD-2, question: "Why was this order rejected?", expect: {primary: R-FL-001, confidence: confirmed}}
+  - {agent: fulfillment, record: ORD-1, question: "Why was this order rejected?", expect: {primary: null, out_of_scope: "reject:CR1"}}
+  - {agent: charges, record: ORD-3, question: "Why was I charged $25 for shipping?", expect: {primary: R-CH-001, confidence: confirmed, contains: ["$25.00"]}}

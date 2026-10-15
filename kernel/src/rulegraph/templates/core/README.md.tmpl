@@ -1,0 +1,15 @@
+# __TITLE__ core agent
+
+A core planner over the `__AGENTS_PACKAGE__` domain agents. The core works out which
+domain agents a question needs, delegates tasks to them in process, checks that
+every observed outcome is explained, runs one gap round if not, and writes one
+answer with citations. Domain agents are imported objects, not network services.
+Expose the core itself through whichever agent SDK adapter you need.
+
+```bash
+pip install -r requirements-dev.txt
+__DIST__ validate
+__DIST__ eval
+__DIST__ ask ORD-1 "Why was this order rejected?" --trace
+pytest
+```

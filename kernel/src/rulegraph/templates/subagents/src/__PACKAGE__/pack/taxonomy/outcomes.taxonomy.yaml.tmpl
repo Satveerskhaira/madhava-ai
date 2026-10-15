@@ -1,0 +1,18 @@
+# Outcome taxonomy (SKOS). Top concepts carry `agent` and `precedence` (decision order);
+# leaves carry `rule_domain` and `notations` (outcome tokens they classify).
+scheme: {id: "__DIST__:outcomes", prefLabel: Order decisions, version: "0.1", namespace: "https://example.org/__DIST__/taxonomy/"}
+concepts:
+  - {id: credit, prefLabel: Credit, agent: credit, precedence: 10,
+     definition: Whether the account has enough available credit for the order., altLabels: [credit, credit limit]}
+  - {id: credit.limit, broader: credit, prefLabel: Credit limit, rule_domain: credit_limit, notations: ["reject:CR1"],
+     definition: Order amount plus credit already used compared with the account's limit., altLabels: [over limit, available credit]}
+  - {id: fulfillment, prefLabel: Fulfillment, agent: fulfillment, precedence: 20,
+     definition: Whether the order can be shipped as placed., altLabels: [fulfillment, shipping restriction]}
+  - {id: fulfillment.region, broader: fulfillment, prefLabel: Delivery region, rule_domain: regions, notations: ["reject:FL1"],
+     definition: Whether the account terms allow delivery to the region., altLabels: [region, not served, delivery area]}
+  - {id: fulfillment.quantity, broader: fulfillment, prefLabel: Order quantity, rule_domain: quantity, notations: ["reject:FL2"],
+     definition: Maximum quantity per order under the account terms., altLabels: [quantity, too many, max quantity]}
+  - {id: charges, prefLabel: Charges, agent: charges, precedence: 30,
+     definition: What the customer was charged beyond the item price., altLabels: [charge, fee, cost]}
+  - {id: charges.shipping, broader: charges, prefLabel: Shipping fee, rule_domain: shipping_fees, notations: ["price:shipping"],
+     definition: Shipping fee for the delivery region., altLabels: [shipping, delivery fee, shipping fee]}

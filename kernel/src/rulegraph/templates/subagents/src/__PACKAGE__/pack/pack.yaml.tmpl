@@ -1,0 +1,21 @@
+name: __DIST__
+version: "0.1"
+agent_prefix: __DIST__
+roots: {record: order, reference: terms}
+nouns: {record: order, reference: account terms}
+codes_kind: reject
+files:
+  taxonomy: taxonomy/outcomes.taxonomy.yaml
+  ontology: ontology/domain.ontology.yaml
+  catalog: catalog/fields.yaml
+  codes: catalog/codes.yaml
+  domains: domains
+  investigator: procedures/investigator.yaml
+  domain_planner: procedures/domain_planner.yaml
+  intents: procedures/intents.yaml
+rules_modes: {as_decided: as decided, current: current, as_of: as of}
+token_labels:
+  reject: "reason {value} ({meaning})"
+  price: "{value} charge"
+phrases:
+  amount_paid: "The customer was charged {actual}. Reason: {narrative} {cite}"

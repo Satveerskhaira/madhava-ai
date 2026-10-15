@@ -1,0 +1,6 @@
+# Questions for the core agent with SME-verified expected answers.
+goldens:
+  - {record: ORD-1, question: "Why was this order rejected?", expect: {primary: R-CR-001, confidence: confirmed}}
+  - {record: ORD-2, question: "Why was this order rejected?", expect: {primary: R-FL-001, confidence: confirmed}}
+  - {record: ORD-3, question: "Why was I charged $25 for shipping?", expect: {primary: R-CH-001, confidence: confirmed}}
+  - {record: ORD-4, question: "Why was this order rejected?", expect: {primary: null, confidence: unexplained, gap: "reject:ZZ9"}}

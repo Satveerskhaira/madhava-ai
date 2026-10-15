@@ -283,7 +283,7 @@ footer{padding:36px 0 56px;color:var(--muted);font-size:.9rem;border-top:1px sol
 
 <header class="hero wrap">
   <h1>Explaining every pharmacy claim with domain agents working in parallel</h1>
-  <p class="lede">Madhava reconstructs why a claim adjudicated the way it did. It uses SME rule cards, date-of-service plan data and deterministic evaluation. Specialist agents investigate each domain at the same time over A2A, then one synthesizer writes an answer with evidence.</p>
+  <p class="lede">Madhava reconstructs why a claim adjudicated the way it did. It uses SME rule cards, date-of-service plan data and deterministic evaluation. A core agent plans the investigation, domain agents check their domains at the same time, each planning within its own rules, and one answer is written with evidence. Domain agents run inside the core service; only the core is exposed over A2A.</p>
 
   <div class="hero-grid">
     <aside class="slip" aria-label="Example claim">
@@ -313,7 +313,7 @@ footer{padding:36px 0 56px;color:var(--muted);font-size:.9rem;border-top:1px sol
         <span><i style="background:var(--pass)"></i>Checked, no issue</span>
         <span><i style="background:var(--skip)"></i>Not reached by adjudication</span>
       </div>
-      <div class="answer idle" id="answer">Run the explanation to see how seven domain agents investigate this claim and how one answer is assembled from their findings.</div>
+      <div class="answer idle" id="answer">Run the explanation to see how the domain agents investigate this claim and how one answer is assembled from their findings.</div>
     </div>
   </div>
 </header>
@@ -322,7 +322,7 @@ footer{padding:36px 0 56px;color:var(--muted);font-size:.9rem;border-top:1px sol
 <section id="architecture">
   <div class="wrap">
     <h2>The architecture, layer by layer</h2>
-    <p class="prose">Agents talk to each other over A2A. Agents use tools over MCP. Rules and plan data meet only inside the deterministic evaluator, so a model never decides whether a rule applies. It only selects candidates and explains results.</p>
+    <p class="prose">The core agent is exposed to other agents over A2A and calls the domain agents in process, as an imported package. Agents use tools over MCP. Rules and plan data meet only inside the deterministic evaluator, so a model never decides whether a rule applies. It only selects candidates and explains results.</p>
 
     <div class="arch">
       <div class="layers">
@@ -345,16 +345,17 @@ footer{padding:36px 0 56px;color:var(--muted);font-size:.9rem;border-top:1px sol
         <div class="layer orchestr">
           <div class="layer-name">Orchestration<small>One per question</small></div>
           <div class="chips">
-            <span class="chip main"><b>Claim Explainer orchestrator</b></span>
+            <span class="chip main"><b>Claim Explainer core agent</b> (the orchestrator)</span>
             <span class="chip">Understand: small model reads free-text questions</span><span class="chip">Triage: fetch claim once, build context packet</span>
             <span class="chip">Router: reject codes and outcome fields to domains</span>
-            <span class="chip">Fan-out with deadlines</span>
-            <span class="chip">Synthesizer: precedence, coverage check, strong model writes answer</span>
+            <span class="chip">Fan-out with deadlines</span><span class="chip">Coverage check, one bounded gap round</span>
+            <span class="chip">Synthesizer: precedence, strong model writes answer</span>
+            <span class="chip">Exposed over A2A and MCP</span>
           </div>
         </div>
-        <div class="link"><span>A2A tasks in parallel, SSE streaming</span></div>
+        <div class="link"><span>In-process tasks in parallel, with deadlines</span></div>
         <div class="layer a2a">
-          <div class="layer-name">Domain agents<small>Independent services, own rules</small></div>
+          <div class="layer-name">Domain agents<small>Planners per domain, own rules, shipped as a package</small></div>
           <div class="chips">
             <span class="chip">Eligibility and member</span><span class="chip">Formulary and coverage</span>
             <span class="chip">Utilization management (PA, ST, QL)</span><span class="chip">Clinical DUR</span>
@@ -385,10 +386,10 @@ footer{padding:36px 0 56px;color:var(--muted);font-size:.9rem;border-top:1px sol
       </div>
       <aside class="rail" aria-label="Platform services">
         <div class="layer-name">Platform<small>Used by every layer</small></div>
-        <span class="chip">GKE, one deployment per agent</span>
+        <span class="chip">GKE, core agent with domain agents in process</span>
         <span class="chip">Service mesh with mTLS</span>
         <span class="chip">LLM gateway: model routing, quotas, fallbacks</span>
-        <span class="chip">OpenTelemetry traces across A2A and MCP</span>
+        <span class="chip">OpenTelemetry traces across core, domain agents and MCP</span>
         <span class="chip">Secrets and key management</span>
         <span class="chip">Evaluation harness with golden claims</span>
         <span class="chip">CI for rule cards</span>
@@ -405,7 +406,7 @@ footer{padding:36px 0 56px;color:var(--muted);font-size:.9rem;border-top:1px sol
       <li><div><h3>Anchor on the claim</h3><p>The orchestrator calls claim tools once and stores a snapshot. It extracts outcome tokens: each reject code, each pricing component, each DUR flag. These are the facts the final answer must explain.</p></div></li>
       <li><div><h3>Resolve the date context</h3><p>Date of service picks the plan version and the rule set in force. The user can ask for rules as of today instead, to answer “would this happen now?”</p></div></li>
       <li><div><h3>Route to domains</h3><p>A deterministic table maps reject codes and outcome fields to domains. For free-text questions, a small model adds domains. Cheap neighbouring domains are included speculatively, so nothing waits on a second round.</p></div></li>
-      <li><div><h3>Fan out over A2A</h3><p>Each selected agent receives a task with a context reference, not a copy of PHI. All tasks start together under one deadline, typically four seconds.</p></div></li>
+      <li><div><h3>Fan out to domain agents</h3><p>Each selected domain agent receives a task with a context reference, not a copy of PHI, as an in-process call. All tasks start together under one deadline, typically four seconds. Each domain agent plans which of its rule domains to check and runs them in parallel too.</p></div></li>
       <li><div><h3>Find candidate rules</h3><p>Each agent queries the rule registry inside its own domain by trigger, then by vector similarity when the question is fuzzy. Only rules effective on the claim's date come back.</p></div></li>
       <li><div><h3>Fetch only the plan paths each rule reads</h3><p>The rule card lists its plan paths. The plan slice service returns just those values for the plan version, usually from cache.</p></div></li>
       <li><div><h3>Evaluate and return findings</h3><p>The evaluator runs the rule condition and returns fired or not fired, with the exact claim and plan values used. The agent returns structured findings, streaming each as it completes.</p></div></li>
@@ -430,7 +431,7 @@ sequenceDiagram
   O->>C: get_claim(id)
   C-->>O: snapshot, reject 75, DOS
   O->>O: route: UM, coverage, pricing, plus speculative domains
-  par A2A fan-out
+  par in-process fan-out
     O->>UM: task(contextRef)
     UM->>R: find_rules(domain=UM, reject=75, dos)
     UM->>P: get_plan_slice(paths, dos)
@@ -456,7 +457,7 @@ sequenceDiagram
 <section id="agents">
   <div class="wrap">
     <h2>Domain agents and what each one owns</h2>
-    <p class="prose">Each agent is a separate deployable service owned with its SME team. It publishes an agent card describing its skills and triggers, owns its rule cards, and can scale and release on its own schedule.</p>
+    <p class="prose">Each domain agent is a planner scoped to its branch of the adjudication taxonomy, owned with its SME team. It plans which of its rule domains to check, runs one investigator per rule domain, verifies that every outcome in its scope is explained, runs its own bounded gap round, and reports findings and gaps to the core. It can also answer a question directly from its domain's point of view. The domain agents ship together as a versioned package that the core imports; each team owns its folder of rules and goldens, and releases through the package version.</p>
     <div class="tbl">
       <table>
         <thead><tr><th>Agent</th><th>Explains</th><th>Typical triggers</th><th>Plan areas it reads</th></tr></thead>
@@ -525,7 +526,7 @@ sequenceDiagram
       </div>
       <div class="codecard">
         <h3>Finding, returned by every domain agent</h3>
-        <p>The A2A task artifact. The synthesizer only works with findings, never raw plan data.</p>
+        <p>Part of the domain report returned to the core. The synthesizer only works with findings, never raw plan data.</p>
 <pre>{
   "domain": "utilization_mgmt",
   "status": "fired",
@@ -545,25 +546,22 @@ sequenceDiagram
 }</pre>
       </div>
       <div class="codecard">
-        <h3>Agent card, published by each agent</h3>
-        <p>Lets the orchestrator discover agents and route by declared triggers instead of hard-coded lists.</p>
+        <h3>Agent card, published by the core agent</h3>
+        <p>Generated from the taxonomy: one skill per domain agent, tagged with its reject codes and rule domains. Other agents discover the core through it; inside the core, routing reads the same taxonomy.</p>
 <pre>{
-  "name": "um-agent",
-  "description": "Explains prior auth, step
-     therapy and quantity limit outcomes",
-  "url": "https://agents.internal/um",
-  "version": "1.4.0",
+  "name": "pharmacy-core",
+  "description": "Explains why a pharmacy
+     claim rejected or priced as it did",
+  "url": "https://agents.internal/claim-explainer",
+  "version": "0.2.0",
   "capabilities": { "streaming": true },
   "skills": [{
-    "id": "explain_um_outcome",
-    "name": "Explain UM outcome",
-    "tags": ["prior_auth", "step_therapy",
-             "quantity_limit"]
-  }],
-  "x-routing": {
-    "rejectCodes": ["75", "76"],
-    "ruleDomain": "utilization_mgmt"
-  }
+    "id": "utilization_management",
+    "name": "Utilization management",
+    "tags": ["reject:75", "reject:76",
+             "prior_authorization",
+             "step_therapy", "quantity_limits"]
+  }, ...]
 }</pre>
       </div>
     </div>
@@ -604,12 +602,12 @@ sequenceDiagram
     <div class="grid3">
       <div><h3>Cache what rarely changes</h3><p>Plan slices are cached by plan ID, plan version and path set. Plan versions change rarely, so hit rates are high. Rule cards live in agent memory and are refreshed by MongoDB change streams.</p></div>
       <div><h3>Cache whole explanations</h3><p>The key is claim ID, rules-as-of and rule set hash. A claim asked about by three people in an hour is explained once. Any rule change in that domain invalidates it.</p></div>
-      <div><h3>Scale each agent on its own</h3><p>Each agent is its own GKE deployment, autoscaled on in-flight tasks through KEDA or custom metrics. Pricing and UM agents get the most traffic and scale independently of the rest.</p></div>
-      <div><h3>Deadlines and partial answers</h3><p>Every A2A task carries a deadline. A slow agent's result is marked pending and the answer goes out with what is confirmed. Bulkheads stop one domain's failures from consuming shared capacity.</p></div>
+      <div><h3>Scale the core, agents included</h3><p>Domain agents run inside the core's pods, so there is one stateless deployment to autoscale on in-flight explanations, and no network hop between core and domain agents. If one domain ever needs its own scaling or release cycle, it can be served separately and the core given a client for it; nothing else changes.</p></div>
+      <div><h3>Deadlines and partial answers</h3><p>Every domain task carries a deadline. A slow agent's result is marked pending and the answer goes out with what is confirmed. Bulkheads stop one domain's failures from consuming shared capacity.</p></div>
       <div><h3>Protect the plan setup API</h3><p>All access goes through the plan slice service with circuit breakers, request coalescing for identical slices, and per-path projection so callers never pull the full 12k-field payload.</p></div>
       <div><h3>Right-size the models</h3><p>Domain agents use a small, fast model, or skip the model when the route table and templates are enough. The synthesizer uses a stronger model. The LLM gateway handles quotas, prompt caching and fallback.</p></div>
       <div><h3>Batch mode for audits</h3><p>Thousands of claims for audits or client reviews go through a queue such as Pub/Sub. Batch workers use the same agents with lower priority and no streaming.</p></div>
-      <div><h3>Discovery, not wiring</h3><p>The orchestrator reads agent cards from a registry. A new domain team ships an agent with its card and rules, and routing picks it up without an orchestrator release.</p></div>
+      <div><h3>Knowledge, not wiring</h3><p>The core routes from the taxonomy, not a hard-coded list. A new domain is a taxonomy branch, rule domains and goldens in the domain agents package; the core picks it up on a package version bump, with no core code change.</p></div>
     </div>
   </div>
 </section>
@@ -631,7 +629,7 @@ sequenceDiagram
 <section id="observability">
   <div class="wrap">
     <h2>Observability and quality</h2>
-    <p class="prose">One trace ID follows the question through the orchestrator, every A2A task and every MCP tool call. That makes a slow or wrong answer diagnosable in minutes.</p>
+    <p class="prose">One trace ID follows the question through the core, every domain agent task and every MCP tool call. That makes a slow or wrong answer diagnosable in minutes.</p>
     <div class="tbl">
       <table>
         <thead><tr><th>Signal</th><th>What it tells you</th><th>Target to start with</th></tr></thead>
@@ -664,10 +662,10 @@ sequenceDiagram
       <div class="phase">
         <h3>Split into domain agents</h3>
         <ul>
-          <li>Orchestrator with A2A fan-out and deadlines</li>
-          <li>Agent cards and registry-based routing</li>
+          <li>Core agent with in-process fan-out, deadlines and gap round</li>
+          <li>Domain agents as planners, routed by the taxonomy</li>
           <li>Pricing what-if, DUR and eligibility agents</li>
-          <li>Explanation cache and per-agent autoscaling</li>
+          <li>Explanation cache; core exposed over A2A and MCP</li>
         </ul>
       </div>
       <div class="phase">
@@ -718,7 +716,7 @@ sequenceDiagram
 <div class="view off" id="view-tech" inert>
 <header class="hero wrap" style="padding-bottom:8px">
   <h1>The backend that runs it</h1>
-  <p class="lede">A hybrid stack on GKE. The orchestrator and domain agents are Python with Google ADK, where agent tooling moves fastest. The deterministic tool servers stay in Java and Spring Boot, close to the existing plan and claims APIs. A2A and MCP sit at the seams, so neither side depends on the other's language.</p>
+  <p class="lede">A hybrid stack on GKE. The core agent and domain agents are Python, on an SDK-neutral kernel with Google ADK as the adapter, where agent tooling moves fastest. The deterministic tool servers stay in Java and Spring Boot, close to the existing plan and claims APIs. MCP sits at the language seam and A2A exposes the core to other agents, so neither side depends on the other's language.</p>
 </header>
 
 <section style="border-top:0;padding-top:12px">
@@ -727,9 +725,9 @@ sequenceDiagram
     <div class="layers" style="margin-top:18px">
       <div class="layer"><div class="layer-name">Entry<small>REST and SSE</small></div><div class="chips"><span class="chip"><b>Apigee</b> gateway, OAuth2, quotas</span><span class="chip"><b>explain-api</b> Spring Boot, streams answers over SSE</span></div></div>
       <div class="link"></div>
-      <div class="layer orchestr"><div class="layer-name">Orchestration<small>Python, Google ADK</small></div><div class="chips"><span class="chip main"><b>orchestrator</b> ADK SequentialAgent graph</span><span class="chip">RemoteA2aAgent clients</span><span class="chip">asyncio fan-out with deadlines</span><span class="chip">Small model to understand, strong model to synthesize</span></div></div>
+      <div class="layer orchestr"><div class="layer-name">Orchestration<small>Python, Google ADK</small></div><div class="chips"><span class="chip main"><b>core agent</b> planner loop, run as an ADK workflow graph</span><span class="chip">Domain agents imported in process</span><span class="chip">A2A server for other agents</span><span class="chip">asyncio fan-out with deadlines</span><span class="chip">Small model to understand, strong model to synthesize</span></div></div>
       <div class="link"></div>
-      <div class="layer a2a"><div class="layer-name">Domain agents<small>Python, one ADK template, eight services</small></div><div class="chips"><span class="chip">Fixed investigate step, no model</span><span class="chip">Small model only to phrase findings</span><span class="chip">ADK MCP toolset</span><span class="chip">Exposed as A2A servers</span></div></div>
+      <div class="layer a2a"><div class="layer-name">Domain agents<small>Python package, in the core's process</small></div><div class="chips"><span class="chip">Planner per domain, own gap round</span><span class="chip">Investigators: fixed steps, no model</span><span class="chip">Templates first, small model optional</span><span class="chip">MCP tools</span></div></div>
       <div class="link"></div>
       <div class="layer"><div class="layer-name">MCP tool servers<small>Java, Spring Boot</small></div><div class="chips"><span class="chip">Spring AI MCP server, Streamable HTTP</span><span class="chip">cel-java evaluator</span><span class="chip">Plan setup API client with JSON pointer projection</span><span class="chip">Resilience4j and Caffeine</span></div></div>
       <div class="link"></div>
@@ -747,11 +745,11 @@ sequenceDiagram
     <p class="prose">The split follows how often each part changes and what it depends on. Agent logic is prompts, routing and evaluation, and it changes weekly. Tool servers are integrations with systems of record, and they change rarely.</p>
     <div class="grid3">
       <div><h3>Agent tooling lands in Python first</h3><p>ADK, LangGraph, evaluation frameworks and tracing tools ship features in Python before anything else. Agent behaviour is where iteration speed pays off.</p></div>
-      <div><h3>ADK fits the platform</h3><p>Built-in A2A for calling and exposing agents, workflow agents for fixed graphs, LiteLLM for any approved model, and a straightforward path to GKE.</p></div>
+      <div><h3>ADK fits the platform, without lock-in</h3><p>Built-in A2A for exposing the core, workflow graphs, LiteLLM for any approved model, and a straightforward path to GKE. The planner kernel has no ADK imports, so another SDK can sit at the same edges.</p></div>
       <div><h3>Tools stay with the Java estate</h3><p>The plan slice, rule registry and evaluator wrap existing Java APIs, reuse the team's security and logging starters, and are throughput-bound rather than agent-shaped.</p></div>
       <div><h3>MCP is the language boundary</h3><p>Agents only see typed tool schemas. Either side can be rewritten without the other noticing, and IDE assistants and SME tools reuse the same tools.</p></div>
       <div><h3>The cost is two runtimes</h3><p>Two build pipelines, two base images and Python skills on the team. Shared service templates for each language keep the difference small.</p></div>
-      <div><h3>When to choose LangGraph instead</h3><p>If you want the flow as an explicit state graph with built-in checkpointing and replay of each run, LangGraph is the better fit. A2A still connects it to the same domain agents.</p></div>
+      <div><h3>When to choose LangGraph instead</h3><p>If you want the flow as an explicit state graph with built-in checkpointing and replay of each run, LangGraph is the better fit. It wraps the same planner kernel and domain agents through an adapter.</p></div>
     </div>
   </div>
 </section>
@@ -766,7 +764,7 @@ sequenceDiagram
         <tbody>
           <tr><td><b>Snapshot and outcome tokens</b></td><td>Orchestrator</td><td>None</td><td>Always. Claim tools over MCP.</td></tr>
           <tr><td><b>Understand the question</b></td><td>Orchestrator</td><td>Small</td><td>Free-text questions: extracts the claim, the ask (reason, cost, what-if, comparison) and any extra domains. Skipped when the caller sends a structured request.</td></tr>
-          <tr><td><b>Route to domains</b></td><td>Orchestrator</td><td>None</td><td>Always. Route table built from agent cards, plus domains named in the understood ask.</td></tr>
+          <tr><td><b>Route to domains</b></td><td>Orchestrator</td><td>None</td><td>Always. Routing from the adjudication taxonomy (reject codes as notations), plus domains named in the understood ask.</td></tr>
           <tr><td><b>Find rules, fetch slices, evaluate</b></td><td>Domain agents</td><td>None</td><td>Always. A fixed tool sequence in code, never chosen by a model.</td></tr>
           <tr><td><b>Phrase findings</b></td><td>Domain agents</td><td>Small, or none</td><td>Only when the rule's template cannot express the finding. Runs in parallel across agents.</td></tr>
           <tr><td><b>Precedence and coverage check</b></td><td>Orchestrator</td><td>None</td><td>Always. Every outcome token must map to a finding.</td></tr>
@@ -790,19 +788,20 @@ sequenceDiagram
       <table>
         <thead><tr><th>Concern</th><th>Choice</th><th>Why it fits Madhava</th><th>Alternative</th></tr></thead>
         <tbody>
-          <tr><td><b>Orchestrator and agents</b></td><td>Python 3.12+, Google ADK</td><td>Workflow agents for a fixed graph, built-in A2A, any approved model through LiteLLM, and the Python evaluation ecosystem.</td><td>LangGraph for explicit state graphs and checkpointing; Spring AI if the team must stay on one language</td></tr>
+          <tr><td><b>Core and domain agents</b></td><td>Python 3.12+, SDK-neutral planner kernel, Google ADK adapter</td><td>A fixed planner loop at every level, ADK for the workflow graph, A2A and any approved model through LiteLLM, and the Python evaluation ecosystem.</td><td>LangGraph for explicit state graphs and checkpointing; Spring AI if the team must stay on one language</td></tr>
           <tr><td><b>Tool servers</b></td><td>Java 21+, Spring Boot, Spring AI MCP server</td><td>Deterministic and throughput-bound, next to existing Java APIs. Reuses the team's security, logging and config starters.</td><td>Python FastMCP, at the cost of a second plan API client</td></tr>
-          <tr><td><b>Agent to agent</b></td><td>A2A protocol through ADK: RemoteA2aAgent as client, agents exposed as A2A servers</td><td>Open standard with agent cards, a task lifecycle and streaming. Domain teams can ship agents independently, in any language.</td><td>A2A Python SDK directly; plain REST loses discovery and task semantics</td></tr>
+          <tr><td><b>Core to domain agents</b></td><td>In-process calls: the core imports the domain agents package</td><td>No network hop, no second deployment, one trace. Typed tasks and reports keep the boundary clean, so a domain could move behind a service later without changing either side.</td><td>A2A or REST per domain, if a domain must scale or release on its own</td></tr>
+          <tr><td><b>Other agents to the core</b></td><td>A2A protocol through ADK, with an agent card generated from the taxonomy; MCP for tool-style use</td><td>Open standard with agent cards, a task lifecycle and streaming, for care-team assistants and other agent platforms.</td><td>A2A Python SDK directly; plain REST loses discovery and task semantics</td></tr>
           <tr><td><b>Agent to tool</b></td><td>MCP over Streamable HTTP, from the ADK MCP toolset to Spring AI MCP servers</td><td>The seam between Python and Java. One tool definition serves every agent, plus IDE assistants and SME tooling.</td><td>Shared REST client libraries per language</td></tr>
-          <tr><td><b>Parallel fan-out</b></td><td>Custom ADK agent with asyncio and a per-agent timeout</td><td>Routing picks a different set of domains for each claim, so the fan-out must be dynamic. Late agents become pending findings.</td><td>ADK ParallelAgent when every domain always runs; LangGraph Send API</td></tr>
+          <tr><td><b>Parallel fan-out</b></td><td>asyncio in the planner, with a per-task timeout, at both core and domain level</td><td>Routing picks a different set of domains for each claim, so the fan-out must be dynamic. Late agents become pending findings.</td><td>ADK ParallelAgent when every domain always runs; LangGraph Send API</td></tr>
           <tr><td><b>Rule conditions</b></td><td>CEL via cel-java in one evaluator service, compiled once per rule version</td><td>Sandboxed, typed and fast. One engine everywhere means Python and Java never disagree on an edge case. Agents send all candidate rules in one batched call.</td><td>Drools for complex chaining, JSON Logic for simplicity</td></tr>
           <tr><td><b>Rule store</b></td><td>MongoDB Atlas with Atlas Vector Search and change streams</td><td>Cards are documents. Exact trigger lookup and semantic search live in one store. Change streams push updates to agents.</td><td>PostgreSQL with pgvector</td></tr>
           <tr><td><b>Caching</b></td><td>Memorystore for Redis or Valkey, plus Caffeine in each pod</td><td>Plan slices and explanations keyed by version, so entries never go stale, they simply stop being asked for.</td><td>Local cache only, which lowers hit rates as pods scale</td></tr>
           <tr><td><b>Batch and events</b></td><td>Pub/Sub, autoscaled workers via KEDA</td><td>Backlog-driven scaling, dead-letter topics, replay.</td><td>Kafka where it is already the enterprise standard</td></tr>
           <tr><td><b>Audit and analytics</b></td><td>BigQuery for explanation records, match rates and gap rates</td><td>SQL over every explanation for SMEs, auditors and dashboards.</td><td>MongoDB collection with an analytics export</td></tr>
           <tr><td><b>Model access</b></td><td>Enterprise LLM gateway in front of approved endpoints</td><td>Quotas, small versus strong model routing, PHI controls, fallback and cost tracking in one place.</td><td>Direct provider SDKs per service</td></tr>
-          <tr><td><b>Observability</b></td><td>OpenTelemetry in Python and Java plus ADK tracing, exported to Cloud Trace and the existing APM such as AppDynamics</td><td>One trace across A2A and MCP hops. Fits the current monitoring estate.</td><td>Vendor agent only</td></tr>
-          <tr><td><b>Delivery</b></td><td>GitHub Actions, Artifact Registry, Helm, Argo CD, canary per agent</td><td>Each agent and tool server releases on its own. Rules follow a separate pipeline.</td><td>Cloud Build and Cloud Deploy</td></tr>
+          <tr><td><b>Observability</b></td><td>OpenTelemetry in Python and Java plus ADK tracing, exported to Cloud Trace and the existing APM such as AppDynamics</td><td>One trace across the core, its domain agents and MCP hops. Fits the current monitoring estate.</td><td>Vendor agent only</td></tr>
+          <tr><td><b>Delivery</b></td><td>GitHub Actions, Artifact Registry, Helm, Argo CD, canary for the core</td><td>The core agent and each tool server release on their own; domain agents release as a package version the core pins. Rules follow a separate pipeline.</td><td>Cloud Build and Cloud Deploy</td></tr>
           <tr><td><b>Testing</b></td><td>pytest and ADK evaluation sets for agents; JUnit, Testcontainers and WireMock for tool servers; A2A and MCP contract tests; golden-claim replay</td><td>Catches broken paths, contract drift and accuracy regressions before release.</td><td>Shared integration environment only</td></tr>
         </tbody>
       </table>
@@ -813,21 +812,20 @@ sequenceDiagram
 <section>
   <div class="wrap">
     <h2>Services to build</h2>
-    <p class="prose">Eighteen deployables, eight of them built from one shared Python agent template. Teams own the agents for their domain; a platform team owns the shared tool servers.</p>
+    <p class="prose">Eleven deployables. The domain agents are not services: they ship as one versioned Python package inside the core agent, with each SME team owning its domain's folder of rules and goldens. A platform team owns the shared tool servers.</p>
     <div class="tbl">
       <table>
         <thead><tr><th>Service</th><th>Kind</th><th>Responsibility</th><th>Scales on</th><th>Calls</th></tr></thead>
         <tbody>
           <tr><td><code>explain-api</code></td><td>Java, Spring Boot</td><td>Entry point, authorization, explanation cache check, SSE streaming to clients</td><td>Requests per second</td><td>orchestrator, Redis</td></tr>
-          <tr><td><code>orchestrator</code></td><td>Python, Google ADK</td><td>Question understanding, routing, A2A fan-out with deadlines, coverage check, synthesis, audit write</td><td>In-flight explanations</td><td>agents, claim tools, LLM gateway, BigQuery</td></tr>
-          <tr><td><code>agent-&lt;domain&gt;</code> ×8</td><td>Python, ADK, A2A server</td><td>Find rules, fetch slices, evaluate, return findings for one domain</td><td>In-flight A2A tasks</td><td>MCP tool servers, LLM gateway</td></tr>
+          <tr><td><code>core-agent</code></td><td>Python, planner kernel, ADK adapter, A2A server</td><td>Question understanding, routing, in-process fan-out to the domain agents (package), coverage check and gap round, synthesis, audit write</td><td>In-flight explanations</td><td>MCP tool servers, LLM gateway, BigQuery</td></tr>
           <tr><td><code>mcp-claim-tools</code></td><td>Java MCP server</td><td>Claim snapshot, response, outcome tokens, claim history</td><td>CPU</td><td>Claims history</td></tr>
           <tr><td><code>mcp-plan-slice</code></td><td>Java MCP server</td><td>Resolve plan version by date of service, project only requested paths, cache, coalesce</td><td>CPU and cache misses</td><td>Plan setup API, Redis</td></tr>
           <tr><td><code>mcp-rule-registry</code></td><td>Java MCP server</td><td>Trigger lookup, vector search, version resolution, rule diffs</td><td>CPU</td><td>MongoDB Atlas</td></tr>
           <tr><td><code>mcp-rule-evaluator</code></td><td>Java MCP server</td><td>Batched CEL evaluation with evidence, for agents, what-if questions and SME tools</td><td>CPU</td><td>None</td></tr>
           <tr><td><code>rule-publisher</code></td><td>Java job</td><td>Publish merged rule cards as new versions, close previous effective dates, refresh embeddings</td><td>On merge</td><td>MongoDB Atlas</td></tr>
           <tr><td><code>field-catalog-sync</code></td><td>Java scheduled job</td><td>Pull the plan API schema, diff it, open a pull request when paths change</td><td>Nightly</td><td>Plan setup API, GitHub</td></tr>
-          <tr><td><code>batch-api</code> and <code>batch-worker</code></td><td>Java, Spring Boot</td><td>Accept claim lists, enqueue, run explanations at low priority, write results</td><td>Queue backlog via KEDA</td><td>Pub/Sub, orchestrator, BigQuery</td></tr>
+          <tr><td><code>batch-api</code> and <code>batch-worker</code></td><td>Java, Spring Boot</td><td>Accept claim lists, enqueue, run explanations at low priority, write results</td><td>Queue backlog via KEDA</td><td>Pub/Sub, core-agent, BigQuery</td></tr>
         </tbody>
       </table>
     </div>
@@ -843,9 +841,8 @@ sequenceDiagram
         <div class="cl-head">GKE cluster, per environment</div>
         <div class="ns-grid">
           <div class="ns"><b>madhava-edge</b><span>explain-api</span><span>batch-api</span></div>
-          <div class="ns"><b>madhava-orchestration</b><span>orchestrator (Python)</span><span>batch-worker (Java)</span></div>
-          <div class="ns a2a"><b>madhava-agents</b><span>Python, ADK</span><span>agent-eligibility</span><span>agent-coverage</span><span>agent-um</span><span>agent-dur</span><span>agent-pricing</span><span>agent-network</span><span>agent-cob</span><span>agent-history</span></div>
-          <div class="ns"><b>madhava-tools</b><span>Java, Spring Boot</span><span>mcp-claim-tools</span><span>mcp-plan-slice</span><span>mcp-rule-registry</span><span>mcp-rule-evaluator</span></div>
+          <div class="ns"><b>madhava-orchestration</b><span>core-agent (Python, with domain agents in process)</span><span>batch-worker (Java)</span></div>
+                    <div class="ns"><b>madhava-tools</b><span>Java, Spring Boot</span><span>mcp-claim-tools</span><span>mcp-plan-slice</span><span>mcp-rule-registry</span><span>mcp-rule-evaluator</span></div>
           <div class="ns"><b>madhava-jobs</b><span>rule-publisher</span><span>field-catalog-sync</span></div>
         </div>
         <div class="cl-foot">Service mesh with mTLS, network policies per namespace, Workload Identity per service account, KEDA and HPA autoscaling</div>
@@ -866,10 +863,11 @@ sequenceDiagram
         <thead><tr><th>From and to</th><th>Protocol</th><th>Contract</th><th>Timeout and retry</th></tr></thead>
         <tbody>
           <tr><td>Client to explain-api</td><td>HTTPS REST, answer streamed over SSE</td><td>OpenAPI: <code>POST /explanations</code>, <code>GET /explanations/{id}/events</code></td><td>Client-side reconnect with last event ID</td></tr>
-          <tr><td>Orchestrator to domain agents</td><td>A2A over HTTPS, streaming messages</td><td>Agent cards, task with context reference data part, finding artifact as JSON Schema</td><td>Per-task deadline, no retry inside the deadline, pending finding on timeout</td></tr>
+          <tr><td>Other agents to the core</td><td>A2A over HTTPS, streaming messages</td><td>Core agent card; request with claim ID and question; answer and explanation JSON</td><td>Caller's deadline; answer streams as it is written</td></tr>
+          <tr><td>Core to domain agents</td><td>In-process async call</td><td>Typed DomainTask (context reference, tokens, concepts, rule hints) and DomainReport (findings, gaps) as JSON Schema</td><td>Per-task deadline, no retry inside the deadline, error report on timeout</td></tr>
           <tr><td>Agents to tool servers</td><td>MCP over Streamable HTTP</td><td>Typed tool schemas: <code>find_rules</code>, <code>get_plan_slice</code>, <code>evaluate_rule</code>, <code>get_claim</code></td><td>500 ms, one retry on idempotent reads</td></tr>
           <tr><td>Plan slice to plan setup API</td><td>Existing REST</td><td>Field catalog maps paths to JSON pointers</td><td>Circuit breaker, request coalescing, stale-on-error from cache</td></tr>
-          <tr><td>Rule publisher to agents</td><td>MongoDB change streams</td><td>Rule card JSON Schema with version and effective dates</td><td>Resume tokens, full reload on gap</td></tr>
+          <tr><td>Rule publisher to the core</td><td>MongoDB change streams</td><td>Rule card JSON Schema with version and effective dates</td><td>Resume tokens, full reload on gap</td></tr>
           <tr><td>Batch API to workers</td><td>Pub/Sub</td><td>Message per claim with job ID and rules-as-of</td><td>Exponential backoff, dead-letter after five attempts</td></tr>
         </tbody>
       </table>
@@ -880,11 +878,11 @@ sequenceDiagram
 <section>
   <div class="wrap">
     <h2>What the core code looks like</h2>
-    <p class="prose">Sketches, not production code. Pin ADK, A2A and Spring AI versions to your approved list; the APIs are moving quickly.</p>
+    <p class="prose">Sketches, not production code. Pin ADK, A2A and Spring AI versions to your approved list; the APIs are moving quickly. The reference implementation (planner kernel, domain agents package, core agent) follows these shapes.</p>
     <div class="two">
       <div class="codecard">
-        <h3>Orchestrator as an ADK graph, Python</h3>
-        <p>A fixed sequence. Only two steps are model calls; the rest are plain code.</p>
+        <h3>Core agent as an ADK graph, Python</h3>
+        <p>A fixed sequence with one bounded back edge. At most two steps are model calls; the rest are plain code. Domain agents run the same loop over their investigators.</p>
 <pre>understand = LlmAgent(
     name="understand", model=SMALL_MODEL,
     instruction=UNDERSTAND_PROMPT,
@@ -901,7 +899,7 @@ orchestrator = SequentialAgent(
         Snapshot(),       # MCP get_claim, no model
         understand,       # model call 1, small
         Route(),          # route table, no model
-        FanOut(),         # A2A in parallel, no model
+        FanOut(),         # domain agents in process, no model
         CoverageCheck(),  # precedence, gaps, one gap round
         synthesize,       # model call 2, strong
     ])</pre>
@@ -917,7 +915,7 @@ orchestrator = SequentialAgent(
         async def ask(domain):
             try:
                 return await asyncio.wait_for(
-                    agents[domain].explain(ref),  # A2A
+                    agents[domain].handle(task(ref)),  # in process
                     timeout=4.0)
             except Exception as ex:
                 return Finding.pending(domain, str(ex))
@@ -934,25 +932,24 @@ orchestrator = SequentialAgent(
                              for f in findings]}))</pre>
       </div>
       <div class="codecard">
-        <h3>Domain agent served over A2A, Python</h3>
-        <p>The tool sequence is fixed in code. The model only turns evidence into a sentence.</p>
-<pre>rule_tools = McpToolset(
-    connection_params=StreamableHTTPConnectionParams(
-        url="https://mcp-tools.internal/mcp"),
-    tool_filter=["find_rules", "get_plan_slice",
-                 "evaluate_rules"])
+        <h3>Domain agents and the exposed core, Python</h3>
+        <p>Domain agents come from the package and are passed to the core as plain executors. Only the core gets an A2A endpoint.</p>
+<pre>import pharmacy_agents
+from rulegraph import Knowledge, core_planner
+from rulegraph.adapters.adk import a2a_app
 
-um_agent = SequentialAgent(
-    name="um_agent",
-    sub_agents=[
-        Investigate(domain="utilization_mgmt",
-                    tools=rule_tools),  # no model
-        LlmAgent(name="phrase", model=SMALL_MODEL,
-                 instruction=PHRASE_PROMPT,
-                 output_key="findings"),
-    ])
+kn = Knowledge.load(pharmacy_agents.pack_dir(),
+                    planner_procedures=CORE_PROCEDURES)
+domain = pharmacy_agents.build(knowledge=kn)
+# {"utilization_management": Planner over
+#  prior_authorization, step_therapy,
+#  quantity_limits investigators, ...}
 
-app = to_a2a(um_agent)  # agent card and A2A endpoint</pre>
+core = core_planner(kn, domain.toolbox,
+                    domain.agents)  # in process
+
+app = a2a_app(core)  # card and A2A endpoint,
+                     # for the core only</pre>
       </div>
       <div class="codecard">
         <h3>Plan slice as an MCP tool, Java</h3>
@@ -1053,13 +1050,13 @@ db.ruleCards.aggregate([{ $vectorSearch: {
     <div class="layers-grid">
       <div class="nest" id="nest">
         <div class="ring r-graphs" data-l="graphs">
-          <button type="button" class="ring-btn" data-l="graphs"><span class="ring-name">Graphs</span><span class="ring-q">How does work move between parts?</span><span class="ring-eg">Request graph, A2A fan-out, rule lifecycle, batch</span></button>
+          <button type="button" class="ring-btn" data-l="graphs"><span class="ring-name">Graphs</span><span class="ring-q">How does work move between parts?</span><span class="ring-eg">Request graph, nested fan-out, rule lifecycle, batch</span></button>
           <div class="ring r-loops" data-l="loops">
             <button type="button" class="ring-btn" data-l="loops"><span class="ring-name">Loops</span><span class="ring-q">When does the system try again, and when does it stop?</span><span class="ring-eg">Gap round, retrieval fallback, improvement loop</span></button>
             <div class="ring r-harness" data-l="harness">
               <button type="button" class="ring-btn" data-l="harness"><span class="ring-name">Harness</span><span class="ring-q">What can an agent see and do?</span><span class="ring-eg">MCP tools, plan slices, rule cards, CEL evaluator</span></button>
               <div class="ring r-agents" data-l="agents">
-                <button type="button" class="ring-btn" data-l="agents"><span class="ring-name">Agents</span><span class="ring-q">Who owns which part of the answer?</span><span class="ring-eg">Orchestrator and eight domain agents</span></button>
+                <button type="button" class="ring-btn" data-l="agents"><span class="ring-name">Agents</span><span class="ring-q">Who owns which part of the answer?</span><span class="ring-eg">Core agent over eight domain agents, each a planner</span></button>
                 <div class="ring r-ai" data-l="ai">
                   <button type="button" class="ring-btn" data-l="ai"><span class="ring-name">AI</span><span class="ring-q">What needs language understanding?</span><span class="ring-eg">Small, strong and embedding models</span></button>
                 </div>
@@ -1092,8 +1089,8 @@ db.ruleCards.aggregate([{ $vectorSearch: {
         </g>
         <g class="n"><rect class="box" x="20" y="106" width="120" height="56" rx="5"/><rect class="k det" x="20" y="112" width="4" height="44"/><text x="32" y="130">Snapshot</text><text class="sub" x="32" y="146">MCP get_claim</text></g>
         <g class="n"><rect class="box" x="160" y="106" width="120" height="56" rx="5"/><rect class="k model" x="160" y="112" width="4" height="44"/><text x="172" y="130">Understand</text><text class="sub" x="172" y="146">Small model</text></g>
-        <g class="n"><rect class="box" x="300" y="106" width="120" height="56" rx="5"/><rect class="k det" x="300" y="112" width="4" height="44"/><text x="312" y="130">Route</text><text class="sub" x="312" y="146">Agent cards</text></g>
-        <g class="n"><rect class="box" x="440" y="106" width="120" height="56" rx="5"/><rect class="k agent" x="440" y="112" width="4" height="44"/><text x="452" y="130">Fan-out</text><text class="sub" x="452" y="146">A2A, in parallel</text></g>
+        <g class="n"><rect class="box" x="300" y="106" width="120" height="56" rx="5"/><rect class="k det" x="300" y="112" width="4" height="44"/><text x="312" y="130">Route</text><text class="sub" x="312" y="146">Taxonomy</text></g>
+        <g class="n"><rect class="box" x="440" y="106" width="120" height="56" rx="5"/><rect class="k agent" x="440" y="112" width="4" height="44"/><text x="452" y="130">Fan-out</text><text class="sub" x="452" y="146">In process, parallel</text></g>
         <g class="n"><rect class="box" x="580" y="106" width="120" height="56" rx="5"/><rect class="k det" x="580" y="112" width="4" height="44"/><text x="592" y="130">Coverage check</text><text class="sub" x="592" y="146">Verifier</text></g>
         <g class="n"><rect class="box" x="720" y="106" width="120" height="56" rx="5"/><rect class="k model" x="720" y="112" width="4" height="44"/><text x="732" y="130">Synthesize</text><text class="sub" x="732" y="146">Strong model</text></g>
         <g class="n"><rect class="box" x="860" y="106" width="120" height="56" rx="5"/><rect class="k det" x="860" y="112" width="4" height="44"/><text x="872" y="130">Answer</text><text class="sub" x="872" y="146">SSE, audit record</text></g>
@@ -1140,7 +1137,7 @@ db.ruleCards.aggregate([{ $vectorSearch: {
       <li><div><h3>One agent and its models</h3><p>The utilization management agent from the shared template, with the small model phrasing findings. Exit when it returns valid findings for its golden claims inside the deadline.</p></div></li>
       <li><div><h3>The graph</h3><p>Orchestrator graph with understand, route, fan-out, coverage check and synthesize, over two or three domains. Exit when answers cite only findings and every run can be replayed.</p></div></li>
       <li><div><h3>The loops</h3><p>Gap round and retrieval fallback with hard caps, then the weekly improvement loop feeding the SME backlog. Exit when each loop has a dashboard showing its trigger rate and outcome.</p></div></li>
-      <li><div><h3>Scale the graph</h3><p>Add the remaining domains as new nodes through agent cards, then the batch and rules-as-of graphs. Exit when a new domain ships without an orchestrator release.</p></div></li>
+      <li><div><h3>Scale the graph</h3><p>Add the remaining domains as taxonomy branches in the domain agents package, then the batch and rules-as-of graphs. Exit when a new domain ships without a core code change.</p></div></li>
     </ol>
   </div>
 </section>
@@ -1281,7 +1278,7 @@ db.ruleCards.aggregate([{ $vectorSearch: {
 
   /* ---------- flow engine ---------- */
   function N(id,x,y,t,s,k,w,h){ return {id:id,x:x,y:y,t:t,s:s,k:k,w:w||130,h:h||52}; }
-  var AG = function(id,y,t){ return N(id,530,y,t,"A2A server","agent",162,46); };
+  var AG = function(id,y,t){ return N(id,530,y,t,"in process","agent",162,46); };
 
   var S = {};
   S.question = {
@@ -1316,7 +1313,7 @@ db.ruleCards.aggregate([{ $vectorSearch: {
        p:{"GET":"expl:RX-2026-0914-77231:dos:rs-9f31c2","result":"miss"}},
       {t:"Start the investigation", n:["gw","orch"], e:[["gw","orch"]], ms:"+70 ms",
        tech:["REST","OpenTelemetry trace"],
-       d:"The orchestrator creates an explanation ID and a trace ID that will follow every A2A task and MCP call in this request.",
+       d:"The orchestrator creates an explanation ID and a trace ID that will follow every domain agent task and MCP call in this request.",
        p:{"explanationId":"ex-5c1e","traceId":"4bf92f3577b34da6a3ce929d0e0e4736","deadlineMs":4000}},
       {t:"Snapshot the claim once", n:["orch","ctools","claims"], e:[["orch","ctools"],["ctools","claims"]], ms:"+300 ms",
        tech:["MCP get_claim","Context packet"],
@@ -1327,14 +1324,14 @@ db.ruleCards.aggregate([{ $vectorSearch: {
        d:"The question is free text, so a small model turns it into a structured ask: what to explain and what to price. It does not choose agents or tools. A caller that sends a structured request skips this call.",
        p:{"model":"small","input":"Why was this rejected, and what would it cost if approved?","output":{"explain":["reject:75"],"whatIf":"approved","extraDomains":["pricing"],"compare":null}}},
       {t:"Route to domains", n:["orch"], e:[], ms:"+20 ms",
-       tech:["Route table","Agent cards"],
-       d:"No model here. A route table built from agent cards maps reject 75 to utilization management, and the understood ask adds pricing. Cheap neighbouring domains are added speculatively so nothing waits on a second round.",
+       tech:["Taxonomy routing","Procedures"],
+       d:"No model here. The adjudication taxonomy maps reject 75 to utilization management, and the understood ask adds pricing. Cheap neighbouring domains are added speculatively so nothing waits on a second round.",
        p:{"primary":["utilization_mgmt","pricing"],"related":["formulary_coverage"],"speculative":["eligibility","clinical_dur","network","cob"],"router":"table"}},
-      {t:"Fan out over A2A", n:["orch","elig","cov","um","dur","price","net","cob"], g:["agents"],
+      {t:"Fan out to domain agents", n:["orch","elig","cov","um","dur","price","net","cob"], g:["agents"],
        e:[["orch","elig"],["orch","cov"],["orch","um"],["orch","dur"],["orch","price"],["orch","net"],["orch","cob"]], ms:"+40 ms",
-       tech:["A2A message/stream","asyncio","Deadline 4 s"],
-       d:"Seven tasks start at the same moment. Each carries a context reference instead of a copy of PHI, and the pricing task asks for a what-if price as if the claim had been approved.",
-       p:{"jsonrpc":"2.0","method":"message/stream","params":{"message":{"role":"user","parts":[{"kind":"data","data":{"contextRef":"ctx://ex-5c1e","task":"explain_outcome","mode":"what_if_approved","deadlineMs":4000}}],"messageId":"m-77"},"metadata":{"traceparent":"00-4bf92f35...-01"}}}},
+       tech:["In-process call","asyncio","Deadline 4 s"],
+       d:"Seven tasks start at the same moment, as calls into the domain agents package. Each carries a context reference instead of a copy of PHI, and the pricing task asks for a what-if price as if the claim had been approved. Each domain agent then plans which of its rule domains to check.",
+       p:{"task_id":"t-77","agent":"cost_share","mode":"what_if","context":{"record_id":"RX-2026-0914-77231","reference_id":"PLN-COMM-4T","service_date":"2026-09-14","rules_mode":"as_decided"},"outcome_tokens":[],"hints":[],"deadlineMs":4000}},
       {t:"Each agent finds its candidate rules", n:["reg","mongo"], g:["agents"], e:[["agents","reg"],["reg","mongo"]], ms:"+40 ms",
        tech:["MCP find_rules","Effective on DOS"],
        d:"Agents search only their own domain. Exact trigger lookup comes first, vector search only for free-text questions. Only rule versions in force on 14 Sep 2026 come back.",
@@ -1352,7 +1349,7 @@ db.ruleCards.aggregate([{ $vectorSearch: {
        d:"Where a rule template is enough, no model is called. Otherwise a small, fast model writes one sentence per finding from the evidence. This is the slowest part of each agent.",
        p:{"model":"small","input":"template + evidence","output":"Tier 4 drugs need prior authorization on this plan; none was on file."}},
       {t:"Findings stream back as they finish", n:["synth"], g:["agents"], e:[["agents","synth"]], ms:"slowest agent ≈ 3.2 s",
-       tech:["A2A artifacts","SSE progress"],
+       tech:["Domain reports","SSE progress"],
        d:"Fast agents report first and the user sees progress. An agent that misses the deadline returns a pending finding instead of blocking the answer.",
        p:[{"domain":"utilization_mgmt","status":"fired","rule":"UM-PA-TIER4 v3","explains":["reject:75"],"confidence":"confirmed"},{"domain":"formulary_coverage","status":"fired","rule":"FC-TIER-MAP v7","confidence":"confirmed"},{"domain":"pricing","status":"what_if","rule":"PR-COINS-T4 v5","value":"25% coinsurance, per-fill cap"},{"domain":"eligibility","status":"not_fired"},{"domain":"cob","status":"not_applicable"}]},
       {t:"Synthesize and check coverage", n:["synth","llm"], e:[["synth","llm"]], ms:"+1.5 s, streamed",
@@ -1440,7 +1437,7 @@ db.ruleCards.aggregate([{ $vectorSearch: {
        d:"KEDA adds workers as the backlog grows. A global rate cap protects the plan setup API and leaves headroom for interactive traffic.",
        p:{"backlog":25000,"replicas":{"min":0,"max":40},"planApiBudget":"30% of capacity"}},
       {t:"The same agents do the work", n:["work","orch","agents"], e:[["work","orch"],["orch","agents"]], ms:"per claim ≈ 4 to 8 s",
-       tech:["A2A","No streaming","Longer deadline"],
+       tech:["Same core","No streaming","Longer deadline"],
        d:"Batch uses the same orchestrator and agents as interactive questions, on a lower priority lane with a longer deadline and no streaming. One code path means one set of answers.",
        p:{"lane":"batch","deadlineMs":15000,"stream":false}},
       {t:"Results land, failures retry", n:["work","bq","topic","dlq"], e:[["work","bq"],["topic","dlq"]], ms:"overnight",
@@ -1601,12 +1598,12 @@ db.ruleCards.aggregate([{ $vectorSearch: {
       steps:["Pick approved models for three roles (small, strong, embedding) and register them in the LLM gateway with quotas.","Write versioned prompts for understand, phrase, gap and synthesize, kept in Git next to the agents.","Give every call a structured output schema so outputs are validated, not parsed.","Build evaluation sets from golden claims: faithful to evidence, correct citations, readable.","Turn on prompt caching for shared instructions and set a token budget per call."],
       done:"Every model output passes its schema and cites only evidence it was given.",
       avoid:"Letting the model read raw plan data or judge whether a rule applies."},
-    agents: {name:"Agents", role:"Domain specialists. Each owns one domain's rules, one scoped tool set and one A2A endpoint.",
-      parts:["Orchestrator: Python, Google ADK","Eight domain agents built from one ADK template","Agent cards declaring skills, triggers and reject codes","One GKE deployment per agent"],
-      det:"Each agent's tool sequence (find rules, fetch slices, evaluate) is fixed in code. The model only phrases what the evidence shows.",
-      steps:["Agree domain boundaries and reject code ownership with each SME team.","Build the shared ADK template: an Investigate step with no model, then a phrase step with the small model.","Write each agent card with skills, triggers, reject codes and rule domain.","Expose each agent over A2A and deploy it as its own GKE service.","Add contract tests for the finding schema, deadline behaviour and pending findings on timeout."],
-      done:"An agent explains its golden claims within 3.5 s at p95 with valid findings.",
-      avoid:"One general agent holding every tool, or agents calling each other directly instead of through the orchestrator."},
+    agents: {name:"Agents", role:"A core planner over domain agents, each itself a planner over one investigator per rule domain. Each domain agent owns one branch of the taxonomy and its rules.",
+      parts:["Core agent: planner kernel, exposed over A2A","Domain agents as a versioned package, imported in process","Investigators: one per rule domain, fixed steps","An agent card for the core, generated from the taxonomy"],
+      det:"Routing, the investigators' tool sequence (find rules, fetch slices, evaluate), coverage checks and gap rounds are fixed in code. The model only understands the question and phrases what the evidence shows.",
+      steps:["Agree domain boundaries and reject code ownership with each SME team.","Write each domain's taxonomy branch, rule domains, rule cards and domain goldens in the domain agents package.","Run each domain agent directly against its goldens: it must explain its scope and report everything else as a gap.","Wire the core over the package and add cross-domain goldens, including a gap round and an unexplained code.","Expose only the core over A2A and MCP, with an agent card generated from the taxonomy.","Add tests for the task and report schemas, deadline behaviour and error reports on timeout."],
+      done:"Each domain agent passes its own goldens, and the core passes the cross-domain goldens within 3.5 s at p95.",
+      avoid:"One general agent holding every tool, domain agents calling each other instead of reporting gaps to the core, or a network hop between core and domain agents without a reason."},
     harness: {name:"Harness", role:"Everything around the model that sets what an agent can see and do. This is where correctness lives.",
       parts:["MCP tool servers in Java: claim tools, plan slice, rule registry, CEL evaluator","Field catalog over the 12k plan setup fields","Rule cards with triggers, reads, conditions and templates","Context references instead of PHI copies","Scoped identities and tool filters per agent","Tracing, audit record and golden-claim replay"],
       det:"All of it. The harness contains no model calls.",
@@ -1614,15 +1611,15 @@ db.ruleCards.aggregate([{ $vectorSearch: {
       done:"A plain script with no model explains a golden claim end to end using only the tools.",
       avoid:"Giving agents the full plan payload, or tools with side effects they do not need."},
     loops: {name:"Loops", role:"Repeat an attempt against an external check until it succeeds or hits a limit.",
-      parts:["Gap round in the orchestrator, at most once","Retrieval fallback inside each agent, at most once","Conversation turns that reuse findings","Weekly improvement loop: replay, gaps, rule changes, CI"],
+      parts:["Gap round in the core, at most once","Gap round inside each domain agent: policy graph, related concepts, sweep of its branch","Retrieval fallback inside each investigator, at most once","Conversation turns that reuse findings","Weekly improvement loop: replay, gaps, rule changes, CI"],
       det:"The stop decision. The coverage check, the evaluator and the match rate decide, never the model grading itself.",
       steps:["Define outcome tokens and make the coverage check the stop condition.","Add the gap round with a hard cap of one and a share of the deadline budget.","Add the retrieval fallback to the Investigate step, capped at one widened search.","Build the golden-claim set and a replay job that publishes match rate and gap rate.","Send gaps and negative feedback to the owning SME backlog, and close the loop through rule pull requests."],
       done:"Each loop has a named verifier, a maximum count and a dashboard showing how often it runs and how it ends.",
       avoid:"Open-ended reasoning loops on the request path, or loops whose only judge is the model."},
     graphs: {name:"Graphs", role:"How work moves between agents, tools and gates, with typed data on every edge.",
-      parts:["Request graph: snapshot, understand, route, fan-out, coverage check, synthesize, answer","Fan-out subgraph: dynamic, parallel A2A calls with deadlines","Rule lifecycle graph: pull request, CI, owner review, publish, live agents","Batch graph: queue, workers, the same request graph, BigQuery"],
-      det:"The shape. Nodes and edges are fixed in code; routing reads agent cards, not model output.",
-      steps:["Model the request graph as an ADK SequentialAgent with typed state keys.","Build the dynamic fan-out node with per-agent deadlines and streamed progress.","Drive routing from the agent card registry so a new domain is a new node, not a code change.","Add gates: coverage check, PHI policy, and owner approval in the rule lifecycle.","Persist each run's state and trace so any answer can be replayed through the same graph."],
+      parts:["Request graph: snapshot, understand, route, fan-out, coverage check, synthesize, answer","Fan-out subgraph: dynamic, parallel in-process calls to domain agents, each running the same graph over its investigators","Rule lifecycle graph: pull request, CI, owner review, publish, live agents","Batch graph: queue, workers, the same request graph, BigQuery"],
+      det:"The shape. Nodes and edges are fixed in code; routing reads the taxonomy, not model output.",
+      steps:["Model the request graph as an ADK SequentialAgent with typed state keys.","Build the dynamic fan-out node with per-task deadlines and streamed progress.","Drive routing from the taxonomy so a new domain is new knowledge, not a code change.","Add gates: coverage check, PHI policy, and owner approval in the rule lifecycle.","Persist each run's state and trace so any answer can be replayed through the same graph."],
       done:"Any past answer replays through the same graph with the same rule versions and gives the same result.",
       avoid:"Hard-wired agent lists in the orchestrator, or edges that pass free text instead of schemas."}
   };

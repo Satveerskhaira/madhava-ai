@@ -8,7 +8,7 @@
 # expect.agents_in_round_2: agents the gap round must add (bounded loop check)
 
 goldens:
-  - claim: RX-1001
+  - record: RX-1001
     question: Why was this rejected, and what would it cost if approved?
     expect:
       primary: R-PA-001
@@ -16,50 +16,50 @@ goldens:
       what_if: R-CS-002
       contains: ["$150.00", "rules have changed since this claim"]
 
-  - claim: RX-1002
+  - record: RX-1002
     question: Why did this refill reject?
     expect: {primary: R-RTS-001, confidence: confirmed}
 
-  - claim: RX-1003
+  - record: RX-1003
     question: Why isn't this covered?
     expect: {primary: R-FRM-001, confidence: confirmed}
 
-  - claim: RX-1004
+  - record: RX-1004
     question: Why was this claim rejected?
     expect: {primary: R-ELIG-001, confidence: confirmed}
 
-  - claim: RX-1005
+  - record: RX-1005
     question: Why did the member pay $35?
     expect: {primary: R-CS-001, confidence: confirmed, contains: ["$35.00"]}
 
-  - claim: RX-1006
+  - record: RX-1006
     question: Why did the member pay $180 instead of the copay?
     expect: {primary: R-ACC-001, confidence: confirmed, overridden: [R-CS-001]}
 
-  - claim: RX-1007
+  - record: RX-1007
     question: Why did this reject with plan limitations exceeded?
     expect: {primary: R-NET-001, confidence: confirmed, agents_in_round_2: [network]}
 
-  - claim: RX-1008
+  - record: RX-1008
     question: Why did this claim reject?
     expect: {primary: null, confidence: unexplained, gap: "reject:85"}
 
-  - claim: RX-1009
+  - record: RX-1009
     question: Why was this rejected?
     expect: {primary: R-COB-001, confidence: confirmed}
 
-  - claim: RX-1010
+  - record: RX-1010
     question: Why was this rejected?
     expect: {primary: R-ST-001, confidence: confirmed}
 
-  - claim: RX-1011
+  - record: RX-1011
     question: Why was this rejected?
     expect: {primary: R-DUR-001, confidence: confirmed}
 
-  - claim: RX-1012
+  - record: RX-1012
     question: Would this claim still pay today?
     expect: {compare_differs: true, current_primary: R-PA-001}
 
-  - claim: RX-1013
+  - record: RX-1013
     question: Why was the copay $30?
     expect: {primary: R-CS-001, confidence: confirmed, contains: ["$30.00", "2026.01"]}

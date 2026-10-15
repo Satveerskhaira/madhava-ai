@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "__DIST__"
+version = "0.1.0"
+description = "Core planner over the __AGENTS_PACKAGE__ domain agents (rulegraph kernel)"
+requires-python = ">=3.11"
+dependencies = ["rulegraph>=0.1", "__AGENTS_DIST__>=0.1"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[project.scripts]
+__DIST__ = "__PACKAGE__.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+__PACKAGE__ = ["procedures/*.yaml"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = ["ignore::UserWarning", "ignore::DeprecationWarning"]

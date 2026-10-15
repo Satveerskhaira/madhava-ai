@@ -1,0 +1,14 @@
+id: R-CH-001
+version: 1
+status: approved
+domain: shipping_fees
+concept: charges.shipping
+intent: The customer pays the shipping fee set for the delivery region
+outcome: {type: pricing, component: shipping, amount: "double(terms.shipping.fee)", actual: order.charges.shipping}
+record_inputs: [order.region, order.charges.shipping]
+reference_inputs: [terms.shipping.fee]
+condition: "has(terms.shipping.fee)"
+order: 10
+template: "Shipping to {{order.region}} costs ${{amount|money}} under the account terms."
+source_refs: [{doc: Rate Card, section: Shipping}]
+confidence: high

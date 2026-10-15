@@ -1,0 +1,39 @@
+import asyncio
+from datetime import date
+from pathlib import Path
+
+import pytest
+import yaml
+
+from rulegraph import Settings
+from rulegraph.evaluation import check
+from rulegraph.models import ContextRef, DomainTask
+from rulegraph.rules.validate import validate
+
+import __PACKAGE__ as pkg
+
+GOLDENS = yaml.safe_load((Path(__file__).resolve().parents[1] / "goldens" / "domain_goldens.yaml").read_text())["goldens"]
+
+
+@pytest.fixture()
+def system():
+    return pkg.build(Settings(today=date(2026, 10, 14)))
+
+
+def test_pack_validates(system):
+    assert validate(system.knowledge) == []
+
+
+@pytest.mark.parametrize("golden", GOLDENS, ids=[f"{g['agent']}-{g['record']}" for g in GOLDENS])
+def test_domain_goldens(system, golden):
+    exp = asyncio.run(system.agents[golden["agent"]].ask(golden["question"], golden["record"]))
+    assert check(exp, golden["expect"]) == [], exp.answer
+
+
+def test_delegated_task(system):
+    snap = system.toolbox.get_record_outcome("ORD-1")
+    ctx = ContextRef(record_id="ORD-1", reference_id="ACC-1", service_date=date(2026, 9, 10),
+                     rules_date=system.toolbox.rules_date(snap, "as_decided"))
+    report = asyncio.run(system.agents["credit"].handle(
+        DomainTask(task_id="t", agent="credit", context=ctx, outcome_tokens=["reject:CR1"])))
+    assert [f.rule_id for f in report.findings if f.explains] == ["R-CR-001"] and report.gaps == []

@@ -1,0 +1,42 @@
+# Domain agent procedures: delegated tasks from a core planner, and direct questions.
+procedures:
+  delegated_explain:
+    intents: [delegated_explain]
+    route_from: [task_tokens, task_concepts, task_hints]
+    sweep_if_unrouted: true
+    task_mode: explain
+    must_explain: task_tokens
+    loop: {max_rounds: 2, expand: [policy_graph, related_concepts, sweep_scope]}
+  delegated_what_if:
+    intents: [delegated_what_if]
+    route_from: [task_concepts, task_hints]
+    sweep_if_unrouted: true
+    task_mode: what_if
+  explain_outcome:
+    intents: [explain_outcome]
+    route_from: [outcome_tokens, question_concepts]
+    sweep_if_unrouted: true
+    task_mode: explain
+    must_explain: outcome_tokens
+    loop: {max_rounds: 2, expand: [policy_graph, related_concepts, sweep_scope]}
+  explain_cost:
+    intents: [explain_cost]
+    route_from: [amount_tokens, question_concepts]
+    sweep_if_unrouted: true
+    task_mode: explain
+    must_explain: amount_tokens
+    loop: {max_rounds: 2, expand: [policy_graph, sweep_scope]}
+  what_if_approved:
+    intents: [what_if_approved]
+    sweep_if_unrouted: true
+    task_mode: what_if
+  compare_current:
+    intents: [compare_current]
+    route_from: [outcome_tokens, question_concepts]
+    speculative: ["*"]
+    task_mode: explain
+    must_explain: outcome_tokens
+    rules_modes: [as_decided, current]
+  define_term:
+    intents: [define_term]
+    task_mode: none

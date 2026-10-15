@@ -1,0 +1,4 @@
+# Kernel from this repo, domain agents from their repo (pinned by commit), then the core.
+-e ./kernel[adk,mcp,dev]
+pharmacy-agents @ git+https://github.com/Satveerskhaira/madhava-ai-subagent.git@1a6493c32f992f99f3143765c630510d5112c849
+-e .[dev]

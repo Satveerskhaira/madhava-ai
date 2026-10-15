@@ -1,0 +1,25 @@
+# __TITLE__ domain agents
+
+Domain agents built on the rulegraph kernel. Each agent is a planner scoped to one
+branch of the taxonomy; its executors are rule-domain investigators. An agent can
+answer a question directly, from its domain's point of view, or work on a task
+delegated by a core planner and report findings with evidence.
+
+The example knowledge (order decisions: credit, fulfillment, charges) is a
+placeholder. Replace it domain by domain, keeping `validate`, `eval` and `pytest` green.
+
+```bash
+pip install -r requirements-dev.txt
+__DIST__ validate
+__DIST__ eval
+__DIST__ ask credit ORD-1 "Why was this order rejected?"
+pytest
+```
+
+| Path | What it is |
+|---|---|
+| `src/__PACKAGE__/pack/` | Knowledge pack: taxonomy, ontology, field catalog, codes, rule domains, procedures |
+| `src/__PACKAGE__/fixtures/` | Sample records and reference data |
+| `src/__PACKAGE__/record.py` | Record adapter: status, outcome codes, amounts, dates, derived fields |
+| `src/__PACKAGE__/system.py` | Builds the toolbox and domain agents (fixtures or HTTP APIs) |
+| `goldens/domain_goldens.yaml` | Questions asked of each domain agent, with expected answers |

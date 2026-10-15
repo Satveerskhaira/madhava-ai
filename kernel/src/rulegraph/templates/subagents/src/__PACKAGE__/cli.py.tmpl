@@ -1,0 +1,55 @@
+"""__DIST__: ask a domain agent, replay goldens, validate the pack."""
+
+from __future__ import annotations
+
+import argparse
+import asyncio
+import sys
+import warnings
+from datetime import date
+from pathlib import Path
+
+from rulegraph import Settings
+
+GOLDENS = Path(__file__).resolve().parents[2] / "goldens" / "domain_goldens.yaml"
+
+
+def main(argv: list[str] | None = None) -> int:
+    warnings.filterwarnings("ignore")
+    p = argparse.ArgumentParser(prog="__DIST__")
+    p.add_argument("--today")
+    sub = p.add_subparsers(dest="cmd", required=True)
+    a = sub.add_parser("ask")
+    a.add_argument("agent")
+    a.add_argument("record")
+    a.add_argument("question")
+    a.add_argument("--trace", action="store_true")
+    sub.add_parser("eval")
+    sub.add_parser("validate")
+    args = p.parse_args(argv)
+    settings = Settings(today=date.fromisoformat(args.today)) if args.today else Settings()
+    from .system import build
+    system = build(settings)
+    if args.cmd == "validate":
+        from rulegraph.rules.validate import validate
+        issues = validate(system.knowledge)
+        for i in issues:
+            print("ISSUE", i)
+        print("OK" if not issues else f"{len(issues)} issues")
+        return 1 if issues else 0
+    if args.cmd == "eval":
+        from rulegraph.evaluation import run_goldens
+        results = asyncio.run(run_goldens(GOLDENS, agents=system.agents))
+        for r in results:
+            print(f"{'PASS' if r.passed else 'FAIL'}  {r.agent}  {r.record}  {r.question}  {r.problems or ''}")
+        print(f"Match rate: {sum(r.passed for r in results)}/{len(results)}")
+        return 0 if all(r.passed for r in results) else 1
+    exp = asyncio.run(system.agents[args.agent].ask(args.question, args.record))
+    print(exp.answer)
+    if args.trace:
+        print("\n".join("  " + t for t in exp.trace))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

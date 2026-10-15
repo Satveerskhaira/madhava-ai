@@ -1,0 +1,14 @@
+id: R-FL-001
+version: 1
+status: approved
+domain: regions
+concept: fulfillment.region
+intent: Reject when the account terms do not allow delivery to the region
+outcome: {type: reject, code: FL1}
+record_inputs: [order.region]
+reference_inputs: [terms.shipping.regions]
+condition: "!(order.region in terms.shipping.regions)"
+order: 10
+template: "Region {{order.region}} is not in the account's delivery regions ({{terms.shipping.regions|list}})."
+source_refs: [{doc: Fulfillment Guide, section: "1.3"}]
+confidence: high

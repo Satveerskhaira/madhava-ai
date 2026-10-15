@@ -1,0 +1,45 @@
+"""Wire the core planner to the domain agents.
+
+Core and domain agents share one knowledge pack and one toolbox, so a record
+is fetched once per question. Domain agents are in-process executors.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from importlib import resources
+from pathlib import Path
+from typing import Callable
+
+import __AGENTS_PACKAGE__ as domain_pkg
+from rulegraph import Knowledge, Settings, Toolbox, core_planner
+from rulegraph.agent.language import DeterministicLanguage, Language, ModelLanguage
+from rulegraph.agent.planner import Planner
+from rulegraph.memory.episodic import EpisodicMemory
+
+
+def procedures_path() -> Path:
+    return Path(str(resources.files("__PACKAGE__") / "procedures" / "planner.yaml"))
+
+
+@dataclass
+class CoreSystem:
+    settings: Settings
+    knowledge: Knowledge
+    toolbox: Toolbox
+    agents: dict[str, Planner]
+    core: Planner
+
+
+def build(settings: Settings | None = None, *, complete: Callable | None = None) -> CoreSystem:
+    """`complete` is any async (system, user) -> str model call, from any SDK; omit for deterministic."""
+    settings = settings or Settings()
+    knowledge = Knowledge.load(domain_pkg.pack_dir(), planner_procedures=procedures_path())
+    intents = knowledge.procedures.intents
+    language: Language = ModelLanguage(knowledge.taxonomy, intents, complete) if complete \
+        else DeterministicLanguage(knowledge.taxonomy, intents)
+    domain = domain_pkg.build(settings, knowledge=knowledge, language=language)
+    core = core_planner(knowledge, domain.toolbox, domain.agents, name="core", language=language,
+                        episodic=EpisodicMemory(settings.episodic_dir), settings=settings,
+                        description="Explains why a record was decided the way it was.")
+    return CoreSystem(settings, knowledge, domain.toolbox, domain.agents, core)

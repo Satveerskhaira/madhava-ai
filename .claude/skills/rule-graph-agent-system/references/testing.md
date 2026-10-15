@@ -1,18 +1,36 @@
 # Testing
 
-The reference suite (`tests/`, 44 tests) runs in about 5 seconds with no network and no model. Keep it, and add domain cases as knowledge grows.
+## Goldens
 
-| File | Covers |
-|---|---|
-| `test_knowledge.py` | `validate()` returns no issues; taxonomy classification, agents, precedence and symmetric `related`; longest-label matching ("pa" does not match "pay"); SKOS/OWL JSON-LD export; the ontology rejects invalid edges; rule sets resolve by date and diff; graph paths and scope filtering; semantic synonym expansion |
-| `test_rules_and_tools.py` | A missing input makes a finding unverified; pricing amount and cap; templates; reference extraction ignores method calls; full-size payload but small slices; chained pointer parameters; plan versions by service date; derived record fields; missing entries are absent rather than errors |
-| `test_agents.py` | Every golden, parametrised; overrides checked; what-if ignores actuals; the gap round is bounded and finds the other domain; unexplained outcomes are logged; current rules mode uses newer versions; session follow-ups reuse findings; a slow agent becomes an error report; definition questions; model guardrails (unknown intents and concepts filtered, narration with unknown rule ids rejected); report JSON round trip |
-| `test_adk_a2a_mcp.py` | The ADK workflow takes `gap` then `done`; all agents served over A2A on free ports with correct cards, and the planner answers through them; MCP tool listing, PHI-minimised outcome, rule search |
+Domain agents repo `goldens/domain_goldens.yaml` (each entry has `agent`); core repo `goldens/goldens.yaml`. Replayed by `<dist> eval` and by pytest via `rulegraph.evaluation.check(explanation, expect)`.
 
-When adding a domain:
-1. Add fixtures and goldens first; they should fail.
-2. Add knowledge until `validate` is clean and the goldens pass.
-3. Add a focused unit test for any new CEL pattern, pointer parameter or derived field.
-4. Pin `--today` (or `Settings(today=...)`) so current-rules results do not drift.
+`expect` keys:
+- `primary`: rule id the answer leads with (`null` when nothing explains it)
+- `confidence`: confirmed | likely | what_if | supporting | unexplained
+- `contains`: phrases the answer must include (amounts, versions)
+- `what_if`: rule id expected in what-if findings
+- `overridden`: rule ids that must be reported as overridden
+- `agents_in_round_2`: agents the core's gap round must add
+- `gap`: token that must be reported unexplained
+- `out_of_scope`: token a domain agent must report as outside its scope
+- `compare_differs`, `current_primary`: for compare-current questions
 
-CI (`.github/workflows/ci.yml`) runs `validate`, `eval` and `pytest` on every pull request.
+## Tests every project keeps
+
+Domain agents repo:
+- pack validates (`validate(knowledge) == []`)
+- every domain golden
+- a delegated task (`agent.handle(DomainTask(...))`) returns the expected finding and no gaps
+- a delegated token outside scope comes back as a gap, not a guess
+- reference payload slicing (catalog reads a few leaves of a large payload)
+- if an SDK adapter is used, one test through it
+
+Core repo:
+- every core golden
+- domain agents are in-process planners (no transport between core and domain agents)
+- a gap round that follows a domain agent's own gap (check the trace)
+- an unexplained outcome is logged to episodic memory, not guessed
+- current rules mode, session follow-up reuse, a slow agent becoming an error report
+- the exposed interface (A2A card and message, MCP tools, workflow graph routes)
+
+Pin `Settings(today=...)` in tests so current-rules answers do not drift.

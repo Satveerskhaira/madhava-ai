@@ -86,7 +86,7 @@ from mcp.server.mcpserver import MCPServer           # FastMCP was renamed in mc
 server = MCPServer("name", instructions="...")
 
 @server.tool(description="...")
-def get_claim_outcome(claim_id: str) -> dict: ...
+def get_record_outcome(record_id: str) -> dict: ...
 
 server.run("stdio")                                  # or "streamable-http", host=..., port=...
 
@@ -94,7 +94,7 @@ server.run("stdio")                                  # or "streamable-http", hos
 from mcp.client import Client
 async with Client(server) as c:
     (await c.list_tools()).tools
-    r = await c.call_tool("get_claim_outcome", {"claim_id": "RX-1"}); r.structured_content
+    r = await c.call_tool("get_record_outcome", {"record_id": "REC-1"}); r.structured_content
 ```
 
 A tool returning a list arrives as `structured_content` `{"result": [...]}`; a dict arrives as the dict.
@@ -105,7 +105,7 @@ A tool returning a list arrives as `structured_content` `{"result": [...]}`; a d
 import celpy
 env = celpy.Environment()
 prog = env.program(env.compile(expr))                # compile once per rule version; cache by expression
-result = prog.evaluate({"claim": celpy.json_to_cel(claim_map), "plan": celpy.json_to_cel(plan_map)})
+result = prog.evaluate({"record": celpy.json_to_cel(record_map), "reference": celpy.json_to_cel(reference_map)})
 ```
 
 - Comparing with `None` raises `CELEvalError` (`no such overload`). Omit missing values from the maps and guard with `has()`.

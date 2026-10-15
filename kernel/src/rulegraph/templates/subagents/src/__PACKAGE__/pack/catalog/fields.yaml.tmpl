@@ -1,0 +1,16 @@
+fields:
+  - {path: order.amount, source: record, entity: Order, type: number, concept: credit.limit, description: Order amount}
+  - {path: order.account.creditUsed, source: record, entity: Account, type: number, concept: credit.limit,
+     description: Credit already used on the account}
+  - {path: order.region, source: record, entity: Order, type: string, concept: fulfillment.region, description: Delivery region}
+  - {path: order.quantity, source: record, entity: Order, type: integer, concept: fulfillment.quantity, description: Units ordered}
+  - {path: order.charges.shipping, source: record, entity: Order, type: number, concept: charges.shipping,
+     description: Shipping fee charged}
+  - {path: terms.credit.limit, source: reference, entity: AccountTerms, type: number, pointer: /credit/limit,
+     concept: credit.limit, description: Account credit limit}
+  - {path: terms.shipping.regions, source: reference, entity: AccountTerms, type: list, pointer: /shipping/regions,
+     concept: fulfillment.region, description: Regions the account may ship to}
+  - {path: terms.limits.maxQuantity, source: reference, entity: AccountTerms, type: integer, pointer: /limits/maxQuantity,
+     concept: fulfillment.quantity, description: Maximum units per order}
+  - {path: terms.shipping.fee, source: reference, entity: AccountTerms, type: number, pointer: "/shipping/fees/{region}",
+     params: {region: order.region}, concept: charges.shipping, description: Shipping fee for the order's region}

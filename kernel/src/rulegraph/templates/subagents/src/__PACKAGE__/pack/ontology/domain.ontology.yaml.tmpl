@@ -1,0 +1,25 @@
+namespace: "https://example.org/__DIST__/ontology#"
+version: "0.1"
+classes:
+  Order: {description: A customer order and its decision.}
+  Account: {description: The customer account placing the order.}
+  AccountTerms: {description: Effective-dated terms for an account (credit, regions, limits, fees).}
+  Outcome: {description: One observable result of a decision, as an outcome token.}
+  Concept: {description: A taxonomy concept.}
+  Rule: {description: An approved business rule card version.}
+  RuleSet: {description: An effective-dated release of a rule domain.}
+  Policy: {description: A source document a rule was derived from.}
+  Field: {description: A record or reference field in the field catalog.}
+  Finding: {description: The result of evaluating one rule.}
+  Evidence: {description: One input value a finding relied on.}
+relations:
+  broader: {domain: Concept, range: Concept, aligns_with: "skos:broader"}
+  related: {domain: Concept, range: Concept, aligns_with: "skos:related"}
+  classifies: {domain: Concept, range: Outcome, aligns_with: "skos:notation"}
+  explains: {domain: Rule, range: Outcome}
+  in_domain: {domain: Rule, range: Concept}
+  reads: {domain: Rule, range: Field}
+  overridden_by: {domain: Rule, range: Rule}
+  derived_from: {domain: Rule, range: Policy}
+  member_of: {domain: Rule, range: RuleSet}
+  describes: {domain: Field, range: Concept}

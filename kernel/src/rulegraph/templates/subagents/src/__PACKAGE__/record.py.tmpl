@@ -1,0 +1,33 @@
+"""Record adapter: the only domain code the kernel needs.
+
+Tells the kernel which record fields hold the status, outcome codes, amounts
+and dates, and derives fields rules read but the record API does not return.
+Change this when you change the record API.
+"""
+
+from __future__ import annotations
+
+from typing import Any
+
+from rulegraph.tools.toolbox import RecordView, as_date
+
+# amount component -> record field holding the actual amount
+AMOUNT_FIELDS = {"shipping": "shipping"}
+
+
+class Adapter:
+    def view(self, raw: dict[str, Any]) -> RecordView:
+        record = dict(raw)
+        charges = record.get("charges", {})
+        status = record.get("status", "unknown")
+        return RecordView(
+            record=record,
+            status=status,
+            adverse=status == "rejected",
+            outcome_tokens=[f"reject:{c}" for c in record.get("reasonCodes", [])],
+            amount_tokens=[f"price:{k}" for k, fld in AMOUNT_FIELDS.items() if (charges.get(fld) or 0) > 0],
+            reference_id=record["accountId"],
+            service_date=as_date(record["orderDate"]),
+            decision_date=as_date(record.get("decidedAt", record["orderDate"])),
+            summary={"region": record.get("region")},
+        )
