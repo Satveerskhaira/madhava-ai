@@ -11,6 +11,7 @@ Use when domains have different owners or release cadences. Each domain agent sh
 | Taxonomy scheme + top concepts (one per agent, with `agent` and `precedence`) | Catalog fields only its rules read |
 | Catalog fields read by several domains, or by none; their `concept` is a top concept | Rule domains (`domain.yaml`, releases, rule cards) |
 | Domain planner procedures, investigator playbook (`default`), intents | Investigator notes for its agent (`agents:` only) |
+| Glossary scheme and shared terms (pointing only at top concepts); shared policy sections | Its own glossary terms and the policy sections its rules cite |
 | Record adapter, toolbox (record and reference APIs), fixtures, CLI | Domain goldens, tests, CI, README |
 
 Decision order stays central (top concepts in the base) because precedence across domains decides the primary reason. The base must validate on its own (`Knowledge.compose([base])`), so nothing in it may point at a fragment's concepts.
@@ -65,7 +66,17 @@ Adding a domain to the core is installing its package and adding cross-domain go
 
 ## Knowledge sources: files now, a database later
 
-Packs load through `KnowledgeSource.load() -> PackDocuments` (plain dicts: manifest, scheme, concepts, ontology, fields, codes, domains with their rules, procedures, intents). `DirectorySource` reads the Git layout; `DocumentSource` takes documents already loaded. A database-backed source (for example MongoDB collections for concepts, fields, codes, rule domains, rule cards and procedures, filtered by pack name) only has to return the same `PackDocuments`; composition, validation and the agents do not change. Keep Git as the authoring and review path and publish to the database, so CI still validates every change.
+Packs load through `KnowledgeSource.load() -> PackDocuments` (plain dicts: manifest, scheme, concepts, glossary terms, ontology, fields, codes, domains with their rules, policies, procedures, intents). `DirectorySource` reads the Git layout; `DocumentSource` takes documents already loaded; `rulegraph.adapters.mongodb.MongoSource` reads a published pack from MongoDB (`rulegraph[mongo]`). Composition, validation and the agents do not change.
+
+Keep Git as the authoring and review path; CI validates, then publishes:
+
+```python
+from rulegraph.adapters.mongodb import publish, mongo_sources
+publish(db, [base_docs, *fragment_docs], release="current")      # documents first, release pointer last
+kn = Knowledge.compose(mongo_sources(db, "current"), planner_procedures=...)
+```
+
+Collections: `packs`, `concepts` (taxonomy and glossary), `fields`, `rule_domains`, `rules` (one immutable version per document), `policies`, `releases`. Dates are stored as ISO strings; no document uses dotted or `$` keys.
 
 ## Splitting a single pack
 

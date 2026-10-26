@@ -94,7 +94,7 @@ The subagents template ships a small working example pack (orders: credit, fulfi
 
 ### 3. Replace the knowledge, one domain agent at a time
 
-Follow `references/adapting-a-domain.md`; schemas are in `references/knowledge-pack.md`. Per domain agent: taxonomy branch, catalog fields, codes, rule domains with releases and rule cards, fixtures, then domain goldens (`agent`, `record`, `question`, `expect`). Run `<dist> validate` after each file.
+Follow `references/adapting-a-domain.md`; schemas are in `references/knowledge-pack.md`. Per domain agent: taxonomy branch, catalog fields, codes, rule domains with releases and rule cards, glossary terms, the policy sections the rules cite (with their text), fixtures, then domain goldens (`agent`, `record`, `question`, `expect`). Run `<dist> validate` after each file; it checks JSON Schema per file and the links between files. `rulegraph schemas --out .schemas` gives editors the same schemas.
 
 ### 4. Write the record adapter
 
@@ -116,7 +116,14 @@ Core goldens prove cross-domain behaviour. Include at least: one per domain agen
 
 Only at the edges. ADK is implemented and tested (`rulegraph.adapters.adk`: `build_workflow`, `a2a_app`, `adk_completion`, `AdkExecutor`); MCP too (`rulegraph.adapters.mcp.build_mcp_server`). For any other SDK follow `references/sdk-adapters.md`: wrap `planner.ask` as that SDK's tool, node or agent, and pass a `complete` function for model understanding. Never import an SDK in pack, adapter or kernel-core code.
 
-### 8. Verify and hand over
+### 8. Make the knowledge visible and portable
+
+- `view` (on the kernel CLI or any project CLI built with `rulegraph.commands`): one offline HTML page with the graph, taxonomy, ontology, glossary, rules, fields, policies and outcomes. Use it in SME reviews.
+- `export graph --format ttl|jsonld`, `export taxonomy|ontology|glossary|shapes|graphml`: standard files for Protégé, graph stores, yEd or Gephi.
+- `shacl`: the exported graph must conform to its shapes.
+- `publish`: packs to MongoDB with a release pointer, when the knowledge moves off files.
+
+### 9. Verify and hand over
 
 Run `validate`, `eval`, `pytest` in each repo; ask a few questions with `--trace` and read the trace (routes, rounds, gaps). Each domain repo's CI installs the kernel and base and tests its fragment alone on the base; the core's CI installs kernel, base and every domain package from their pins and replays cross-domain goldens. Tag releases so pins are reproducible. The kernel's distribution name `rulegraph` is also taken on PyPI by an unrelated project, so always install it from its pinned source (git URL or internal index), never by bare name.
 
@@ -130,6 +137,7 @@ Run `validate`, `eval`, `pytest` in each repo; ask a few questions with `--trace
 
 - [ ] `validate` reports OK in every repo; every rule input is in the catalog
 - [ ] Each domain fragment composes with the base alone and passes its own goldens; the core composes all of them with no conflicts
+- [ ] Every rule cites a policy section that has text; the glossary covers the domain's terms and abbreviations; the graph conforms to its SHACL shapes
 - [ ] Domain goldens per agent (own outcome, amount, out-of-scope token, gap); core goldens cover every agent, an override, a what-if, a gap round, an unexplained code, a compare and a date-resolved reference value; 100% on fixtures
 - [ ] Answers cite rule id and version, state gaps plainly, and name the rules mode, rule sets and reference-data version used
 - [ ] No agent or model receives full records or full reference payloads

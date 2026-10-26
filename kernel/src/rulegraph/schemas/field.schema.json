@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rulegraph.dev/schemas/field.schema.json",
+  "title": "Field catalog entry",
+  "type": "object",
+  "required": [
+    "path",
+    "source",
+    "entity",
+    "type",
+    "concept",
+    "description"
+  ],
+  "properties": {
+    "path": {
+      "type": "string",
+      "pattern": "^[A-Za-z_][\\w]*(\\.[A-Za-z_][\\w]*)+$"
+    },
+    "source": {
+      "enum": [
+        "record",
+        "reference"
+      ]
+    },
+    "entity": {
+      "type": "string"
+    },
+    "type": {
+      "enum": [
+        "string",
+        "integer",
+        "number",
+        "boolean",
+        "date",
+        "list",
+        "object"
+      ]
+    },
+    "concept": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "pointer": {
+      "type": "string",
+      "pattern": "^/"
+    },
+    "params": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "decoded_values": {
+      "type": "object"
+    }
+  },
+  "if": {
+    "properties": {
+      "source": {
+        "const": "reference"
+      }
+    }
+  },
+  "then": {
+    "required": [
+      "pointer"
+    ]
+  }
+}

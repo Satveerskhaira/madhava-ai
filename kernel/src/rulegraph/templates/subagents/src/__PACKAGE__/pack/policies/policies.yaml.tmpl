@@ -1,0 +1,10 @@
+# Source policy sections the rules are derived from. SAMPLE text for the example pack.
+policies:
+  - {doc: Credit Policy, section: "2.1", title: Credit limit check, owner: credit-team, sample: true,
+     text: "An order is rejected when its amount plus the credit already used is above the account's credit limit."}
+  - {doc: Fulfillment Guide, section: "1.3", title: Delivery regions, owner: fulfillment-team, sample: true,
+     text: "Orders ship only to regions listed in the account terms; other regions are rejected."}
+  - {doc: Fulfillment Guide, section: "1.4", title: Quantity per order, owner: fulfillment-team, sample: true,
+     text: "An order above the account's maximum quantity per order is rejected."}
+  - {doc: Rate Card, section: Shipping, title: Shipping fees, owner: billing-team, sample: true,
+     text: "The shipping fee is set per delivery region in the account terms."}

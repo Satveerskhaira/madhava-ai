@@ -386,6 +386,9 @@ class Planner:
         explanation, bundle = synthesis.build(bb, self.kn, self.settings, self.label)
         if bb.task is None:
             explanation.answer = await self.language.narrate(bundle, explanation.answer)
+        cited = [f.rule_id for f in ([explanation.primary] if explanation.primary else [])
+                 + explanation.supporting + explanation.overridden + explanation.what_if]
+        explanation.sources = self.kn.sources_for(dict.fromkeys(cited))
         bb.explanation = explanation
 
     async def remember(self, bb: Blackboard) -> None:
@@ -405,21 +408,30 @@ class Planner:
 
     # ---------------------------------------------------- knowledge answers
     def _define(self, bb: Blackboard) -> Explanation:
-        hits = self.kn.semantic.search(bb.question, kinds={"concept", "field", "code"}, k=3)
+        hits = self.kn.semantic.search(bb.question, kinds={"term", "concept", "field", "code"}, k=3)
         code = re.search(r"\bcode\s+([0-9A-Z][0-9A-Z-]{1,})\b", bb.question, re.I)
         if code and code.group(1).upper() in self.kn.codes:
             hits = [h for h in hits if h.doc.id == f"code:{code.group(1).upper()}"] or hits
-        elif hits:
-            hits = [h for h in hits if h.score >= 0.6 * hits[0].score]
+        else:
+            exact = [t for t in (self.kn.glossary.lookup(bb.question) if self.kn.glossary else []) if t.kind == "term"]
+            if exact:      # the question names a glossary term or abbreviation: answer with exactly that
+                ids = {f"term:{t.id}" for t in exact}
+                hits = [h for h in self.kn.semantic.search(bb.question, kinds={"term"}, k=10) if h.doc.id in ids] or hits
+            elif hits:
+                hits = [h for h in hits if h.score >= 0.6 * hits[0].score]
         intents = bb.ask.intents if bb.ask else []
         if not hits:
             return Explanation(agent=self.name, record_id=None, question=bb.question, confidence="unexplained",
-                               answer="That term is not in the taxonomy, field catalog or code table.",
+                               answer="That term is not in the glossary, taxonomy, field catalog or code table.",
                                intents=intents, trace=bb.trace)
         lines = []
         for h in hits:
             m = h.doc.meta
-            if h.doc.kind == "concept":
+            if h.doc.kind == "term":
+                abbr = f" ({', '.join(m['abbreviations'])})" if m.get("abbreviations") else ""
+                about = f" [taxonomy: {', '.join(m['concepts'])}]" if m.get("concepts") else ""
+                lines.append(f"{m['label']}{abbr}: {m['definition']}{about}")
+            elif h.doc.kind == "concept":
                 lines.append(f"{m['label']}: {m['definition']} (taxonomy concept {m['concept']})")
             elif h.doc.kind == "field":
                 std = ", ".join(f"{k} {v}" for k, v in m.items()

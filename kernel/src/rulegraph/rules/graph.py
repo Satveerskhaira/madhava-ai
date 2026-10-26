@@ -23,7 +23,12 @@ from ..memory.taxonomic import Taxonomy
 from ..ontology import Ontology
 from .store import RuleStore
 
-NODE_CLASS = {"concept": "Concept", "outcome": "Outcome", "rule": "Rule", "field": "Field", "policy": "Policy"}
+NODE_CLASS = {"concept": "Concept", "outcome": "Outcome", "rule": "Rule", "field": "Field", "policy": "Policy",
+              "ruleset": "RuleSet", "term": "Term"}
+
+# Edges kept for the knowledge graph (impact analysis, export, browsing) but not followed by rule search,
+# so adding them never changes which rules an agent finds: they have no walk weight.
+STRUCTURAL = ("depends_on", "member_of", "supersedes", "about")
 
 # Walk weights per (relation, direction). "out" follows the relation as declared.
 WEIGHTS: dict[tuple[str, str], float] = {
@@ -87,8 +92,12 @@ class PolicyGraph:
 
     @classmethod
     def build(cls, ontology: Ontology, taxonomy: Taxonomy, store: RuleStore,
-              fields: Iterable[tuple[str, str]]) -> "PolicyGraph":
+              fields: Iterable[tuple[str, str]], *, field_params: dict[str, list[str]] | None = None,
+              policies: Iterable[str] = (), terms: Iterable[tuple[str, list[str]]] = ()) -> "PolicyGraph":
+        """Build from the taxonomy, rule cards and catalog; structural edges are added when the ontology
+        declares their relation (depends_on, member_of, supersedes, about)."""
         g = cls(ontology)
+        declared = set(ontology.relations)
         for c in taxonomy.concepts.values():
             if c.broader:
                 g.add_edge(f"concept:{c.id}", "broader", f"concept:{c.broader}")
@@ -112,7 +121,29 @@ class PolicyGraph:
             for ref in card.source_refs:
                 doc = ref.doc + (f" / {ref.section}" if ref.section else "")
                 g.add_edge(rule, "derived_from", f"policy:{doc}")
+        for key in policies:                                   # sections no rule cites yet still appear
+            g.nodes.add(f"policy:{key}")
+        if "depends_on" in declared:
+            for path, sources in (field_params or {}).items():
+                for src in sources:
+                    g.add_edge(f"field:{path}", "depends_on", f"field:{src}")
+        if "member_of" in declared:
+            for info in store.domains.values():
+                for rs in info.releases:
+                    for key in rs.rules:
+                        g.add_edge(f"rule:{key.split('@')[0]}", "member_of", f"ruleset:{rs.id}")
+                    if rs.previous and "supersedes" in declared:
+                        g.add_edge(f"ruleset:{rs.id}", "supersedes", f"ruleset:{rs.previous}")
+        if "about" in declared:
+            for term_id, concepts in terms:
+                for c in concepts:
+                    if c in taxonomy.concepts:
+                        g.add_edge(f"term:{term_id}", "about", f"concept:{c}")
         return g
+
+    def edges(self) -> list[tuple[str, str, str]]:
+        """Every edge once, as (source, relation, target)."""
+        return [(src, rel, dst) for src, outs in self.adj.items() for rel, d, dst in outs if d == "out"]
 
     # --------------------------------------------------------------- search
     def _readers(self, field_node: str) -> int:

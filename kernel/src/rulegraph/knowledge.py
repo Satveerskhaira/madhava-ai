@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from .catalog import FieldCatalog
+from .memory.glossary import Glossary
 from .memory.procedural import ProceduralMemory
 from .memory.semantic import Document, SemanticMemory
 from .memory.taxonomic import Taxonomy
@@ -15,7 +16,7 @@ from .pack import PackManifest
 from .rules.evaluator import CelEvaluator
 from .rules.graph import PolicyGraph
 from .rules.store import RuleStore
-from .sources import DirectorySource, KnowledgeSource, PackDocuments, compose
+from .sources import DirectorySource, KnowledgeSource, PackDocuments, compose, policy_key
 
 
 @dataclass
@@ -31,6 +32,9 @@ class Knowledge:
     graph: PolicyGraph
     evaluator: CelEvaluator
     origin: str = ""
+    glossary: Glossary | None = None
+    policies: dict[str, dict[str, Any]] | None = None     # policy section id -> {doc, section, title, text, ...}
+    documents: PackDocuments | None = None                # the composed documents this was built from
 
     @classmethod
     def load(cls, pack_dir: Path, planner_procedures: Path | None = None) -> "Knowledge":
@@ -58,14 +62,35 @@ class Knowledge:
         rules = RuleStore.from_documents(docs.domains)
         procedures = ProceduralMemory.from_documents(docs.investigator, docs.domain_planner, docs.intents,
                                                      planner_procedures)
-        graph = PolicyGraph.build(ontology, taxonomy, rules, [(f.path, f.concept) for f in catalog.fields.values()])
+        glossary = Glossary.from_documents(docs.glossary_scheme, docs.terms, codes, pack.codes_kind)
+        policies = {policy_key(p): dict(p) for p in docs.policies}
+        graph = PolicyGraph.build(
+            ontology, taxonomy, rules, [(f.path, f.concept) for f in catalog.fields.values()],
+            field_params={f.path: list(f.params.values()) for f in catalog.fields.values() if f.params},
+            policies=list(policies), terms=[(t.id, t.concepts) for t in glossary.terms.values() if t.kind == "term"])
         semantic = SemanticMemory(taxonomy)
-        semantic.add(_documents(taxonomy, catalog, codes, rules, pack.codes_kind))
+        semantic.add(_documents(taxonomy, catalog, codes, rules, pack.codes_kind, glossary, policies))
         return cls(pack, taxonomy, ontology, catalog, codes, rules, procedures, semantic, graph,
-                   CelEvaluator(pack.record_root, pack.reference_root), docs.origin)
+                   CelEvaluator(pack.record_root, pack.reference_root), docs.origin, glossary, policies, docs)
 
     def rule_concepts(self) -> dict[str, str]:
         return {rid: self.rules.latest(rid).concept for rid in self.rules.rule_ids()}
+
+    def sources_for(self, rule_ids: Iterable[str]) -> list[dict[str, Any]]:
+        """The policy passages behind these rules (latest versions), for citing next to an answer."""
+        out, seen = [], set()
+        for rid in rule_ids:
+            if rid not in self.rules.rule_ids():
+                continue
+            for ref in self.rules.latest(rid).source_refs:
+                key = ref.doc + (f" / {ref.section}" if ref.section else "")
+                if (rid, key) in seen:
+                    continue
+                seen.add((rid, key))
+                p = (self.policies or {}).get(key, {})
+                out.append({"rule": rid, "policy": key, "doc": ref.doc, "section": ref.section,
+                            "title": p.get("title"), "text": p.get("text"), "url": p.get("url")})
+        return out
 
     def describe_token(self, token: str) -> str:
         kind, _, value = token.partition(":")
@@ -75,8 +100,18 @@ class Knowledge:
 
 
 def _documents(taxonomy: Taxonomy, catalog: FieldCatalog, codes: dict[str, str], rules: RuleStore,
-               codes_kind: str) -> list[Document]:
+               codes_kind: str, glossary: Glossary | None = None,
+               policies: dict[str, dict[str, Any]] | None = None) -> list[Document]:
     docs: list[Document] = []
+    for t in (glossary.terms.values() if glossary else []):
+        if t.kind == "term":
+            docs.append(Document(f"term:{t.id}", "term", " ".join([t.prefLabel, t.definition, *t.altLabels]),
+                                 {"term": t.id, "label": t.prefLabel, "definition": t.definition,
+                                  "abbreviations": t.altLabels, "concepts": t.concepts}))
+    for key, p in (policies or {}).items():
+        docs.append(Document(f"policy:{key}", "policy", f"{p.get('title', '')} {p.get('text', '')}",
+                             {"policy": key, "doc": p["doc"], "section": p.get("section"), "title": p.get("title"),
+                              "text": p.get("text")}))
     for c in taxonomy.concepts.values():
         docs.append(Document(f"concept:{c.id}", "concept",
                              " ".join([c.prefLabel, c.definition, *c.altLabels]),

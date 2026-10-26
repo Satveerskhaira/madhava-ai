@@ -30,6 +30,8 @@ Domain repo (one domain per repo):
 - it is registered (`rulegraph.discover(extends=<base>)` finds it)
 - domain goldens, a delegated task, its own gap round, out-of-scope tokens, agent card
 
+Every repo, through `validate`: JSON Schema per file, glossary terms point at real concepts with unique labels, every cited policy section has text.
+
 Base package:
 - the base validates on its own; composition refuses duplicate concepts, wrong `extends`, missing base
 - record adapter derivations and reference slices on shared fields
@@ -41,5 +43,9 @@ Core repo:
 - an unexplained outcome is logged to episodic memory, not guessed
 - current rules mode, session follow-up reuse, a slow agent becoming an error report
 - the exposed interface (A2A card and message, MCP tools, workflow graph routes)
+- definition questions answered from the glossary; answers carry their policy sources
+- the knowledge graph exports to RDF and conforms to its SHACL shapes; a broken rule (no source) fails them
+- publishing to MongoDB (mongomock in tests) and loading back gives the same graph and the same answers
+- the knowledge browser renders as one self-contained page
 
 Pin `Settings(today=...)` in tests so current-rules answers do not drift.

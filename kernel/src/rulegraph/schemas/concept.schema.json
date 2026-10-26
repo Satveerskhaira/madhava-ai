@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rulegraph.dev/schemas/concept.schema.json",
+  "title": "Taxonomy concept (SKOS)",
+  "type": "object",
+  "required": [
+    "id",
+    "prefLabel"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_]+(\\.[a-z0-9_]+)*$"
+    },
+    "prefLabel": {
+      "type": "string"
+    },
+    "definition": {
+      "type": "string"
+    },
+    "broader": {
+      "type": "string"
+    },
+    "related": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "altLabels": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "notations": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z_]+:\\S+$"
+      }
+    },
+    "agent": {
+      "type": "string"
+    },
+    "precedence": {
+      "type": "integer"
+    },
+    "rule_domain": {
+      "type": "string"
+    }
+  }
+}

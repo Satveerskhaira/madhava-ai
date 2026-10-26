@@ -142,6 +142,24 @@ Outcome types are `reject`, `pricing` (an `amount` expression and the `actual` c
 
 Procedural memory (section 5.3): core procedures in this repo, domain planner procedures, the investigator playbook and intent patterns in the pack.
 
+### 4.6 Glossary (base: shared terms; fragments: their own)
+
+A SKOS concept scheme separate from the taxonomy: business terms and abbreviations ("PA", "OCC", "days supply"), each with a definition and, where it applies, the taxonomy concepts it is about. Reject code meanings join the glossary automatically from the code table. Definition questions ("What is PA?") are answered from it, and the `lookup_term` tool exposes it.
+
+### 4.7 Policy text (fragments, plus shared sections in the base)
+
+The source sections rule cards cite (`source_refs`), with their text, owner, version and effective date. Once a pack keeps policy text, `validate` requires every cited section to be there. Answers carry the passages behind every rule they cite (`Explanation.sources`), so a reader can see the policy wording, and the `get_policy_section` tool returns a section with the rules derived from it. The sample sections are marked `sample: true`.
+
+### 4.8 Standards, storage and viewing
+
+| Need | How |
+|---|---|
+| Author with checking | JSON Schema for every file type (`rulegraph schemas`), run by `validate` and usable in editors |
+| Publish in standard form | `export graph` (JSON-LD or Turtle): OWL ontology, SKOS taxonomy and glossary, fields, outcomes, rule versions with CEL and PROV-O sources, rule sets, policy text |
+| Check the graph with any tool | SHACL shapes (`export shapes`, `madhava shacl`) |
+| Store and load | MongoDB (`madhava publish`, `rulegraph.adapters.mongodb`), with releases flipped in one step; files and MongoDB give the same knowledge |
+| See it | `madhava view`: the offline knowledge browser. See [`viewing-knowledge.md`](viewing-knowledge.md) |
+
 ## 5. Memory
 
 | Memory | What it holds | Used for | Local | Production |
@@ -180,8 +198,9 @@ Investigator playbook (`pack/procedures/investigator.yaml`): `recall_rules → r
 
 ## 6. The rules/policy graph and how relevant rules are picked
 
-**Nodes:** concepts, outcomes, rules, fields, policy documents (122 nodes and 195 edges for the sample knowledge, 18 rule versions in 11 rule domains, 49 catalog fields).
-**Edges:** `broader`, `related`, `classifies` (taxonomy), `explains`, `in_domain`, `reads`, `overridden_by`, `derived_from` (rule cards), `describes` (catalog). The graph is the union over rule versions; the version in force is applied at search time.
+**Nodes:** concepts, glossary terms, outcomes, rules, fields, policy sections, rule sets (159 nodes and 255 edges for the sample knowledge, 18 rule versions in 11 rule domains, 49 catalog fields, 38 glossary terms, 19 policy sections, 12 rule sets).
+**Edges used by rule search:** `broader`, `related`, `classifies` (taxonomy), `explains`, `in_domain`, `reads`, `overridden_by`, `derived_from` (rule cards), `describes` (catalog). The graph is the union over rule versions; the version in force is applied at search time.
+**Structural edges** (impact analysis, export, browsing; never followed by rule search, so adding them cannot change which rules an agent finds): `depends_on` (field to the fields its JSON Pointer needs), `member_of` (rule to rule set), `supersedes` (rule set to the one it replaces), `about` (glossary term to concept).
 
 **Search** (`PolicyGraph.search`):
 
@@ -249,12 +268,16 @@ A model never decides to loop, and never grades its own answer. Each task also r
 | Agent to tools | **MCP** (Model Context Protocol) | `madhava mcp`: the toolbox and the core as MCP tools; the contract the Java tool servers implement |
 | Orchestration | Plain planner loop; **Google ADK 2** workflow graph as an option | `madhava ask --workflow` runs the core as an ADK graph with one bounded back edge; any planner can be built this way |
 | Rule logic | **CEL** | Sandboxed, typed conditions and amounts, compiled once per rule version |
-| Taxonomy | **W3C SKOS** in JSON-LD | Concept scheme, labels, broader/related, notations |
+| Taxonomy and glossary | **W3C SKOS** in JSON-LD | Concept schemes, labels, abbreviations, broader/related, notations; glossary terms `closeMatch` taxonomy concepts |
 | Ontology | **OWL / RDFS** in JSON-LD | Classes and typed relations, enforced on the graph |
+| Knowledge graph | **RDF** (JSON-LD, Turtle) | `madhava export graph`: every node and edge in the ontology's vocabulary |
+| Graph constraints | **W3C SHACL** | Shapes for rules, fields, concepts, terms, rule sets and policies (`madhava shacl`) |
+| Provenance | **W3C PROV-O** | `prov:wasDerivedFrom` rule version → policy section; `prov:wasRevisionOf` between versions |
+| Knowledge files | **JSON Schema** (draft 2020-12) | One schema per file type, checked by `validate` |
 | Pharmacy claims | **NCPDP Telecommunication D.0** (plan for F6) | Field ids in the catalog; reject codes |
 | Formulary and benefit | **NCPDP Formulary and Benefit**, Da Vinci US Drug Formulary | Alignment for formulary entries |
 | Healthcare interop | **HL7 FHIR R4**: Claim, ClaimResponse, ExplanationOfBenefit, Coverage, Medication | Ontology alignment for mapping inputs and exposing answers |
-| Schemas | **JSON Schema** via pydantic models | Every task, report, finding and explanation |
+| Messages | **JSON Schema** via pydantic models | Every task, report, finding and explanation |
 | Data access | **JSON Pointer** (RFC 6901) | Reading plan setup fields |
 | Observability | **OpenTelemetry** (ADK tracing) | One trace across core, domain agents and MCP |
 | Security | OAuth2, mTLS, HIPAA minimum necessary | Context references instead of PHI copies; PHI-minimised MCP responses |
@@ -265,7 +288,11 @@ Other agent SDKs (LangGraph, OpenAI Agents SDK, Claude Agent SDK, CrewAI) attach
 
 ```bash
 pip install -r requirements-dev.txt                # kernel and base (this repo), domain packages (pinned), core
-madhava validate                                   # pack + core procedures
+madhava validate                                   # schemas, cross-file checks, core procedures
+madhava view                                       # offline knowledge browser (docs/viewing-knowledge.md)
+madhava export graph --format ttl --out k.ttl      # also taxonomy, ontology, glossary, shapes, graphml
+madhava shacl                                      # SHACL check of the knowledge graph
+madhava publish --uri mongodb://localhost:27017    # packs to MongoDB
 madhava --today 2026-10-14 eval                    # core goldens: 13/13
 madhava ask RX-1001 "Why was this rejected, and what would it cost if approved?"
 madhava ask RX-1007 "Why did this reject?" --trace # domain gap -> core gap round

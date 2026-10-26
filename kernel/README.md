@@ -6,6 +6,9 @@ An SDK-neutral kernel for agents that explain why a record was decided the way i
 - **Investigator**: fixed playbook, no model: recall rules from the policy graph, read only the needed fields, evaluate CEL, apply overrides, widen once, phrase.
 - **Knowledge packs** (YAML): SKOS taxonomy, ontology, field catalog with JSON Pointers, codes, effective-dated rule domains and rule cards, procedures, wording. A base pack plus one fragment per domain compose into one knowledge set (`compose`, conflicts refused), so each domain can live in its own repo.
 - **Sources and discovery**: packs load through `KnowledgeSource` (`DirectorySource` for the Git layout, `DocumentSource` for documents from a database such as MongoDB); domain packages register a `DomainPackage` under the `rulegraph.domains` entry point and `discover()` finds them.
+- **Glossary and policy text**: a SKOS glossary (terms, abbreviations, code meanings) and the source policy sections rules cite; answers carry the passages behind their rules.
+- **Standards**: JSON Schema for every knowledge file (`rulegraph schemas`), whole-graph export as JSON-LD or Turtle with PROV-O sources (`export graph`), SHACL shapes (`export shapes`, `shacl`), GraphML.
+- **Storage and viewing**: MongoDB publish and source (`rulegraph[mongo]`), and `view`, an offline single-file knowledge browser.
 - **Memory**: working (blackboard), episodic (sessions, gap log), semantic, procedural, taxonomic.
 - **Models are optional**: deterministic understanding by default; `ModelLanguage` takes any `async complete(system, user) -> str`.
 - **Adapters** (extras only): `rulegraph[adk]` (Google ADK workflow graph, A2A server, ADK model completion), `rulegraph[mcp]` (MCP server). No SDK is imported by the core modules.
@@ -14,8 +17,11 @@ An SDK-neutral kernel for agents that explain why a record was decided the way i
 pip install "./kernel[adk,mcp,dev]"            # or a git URL with #subdirectory=kernel
 rulegraph new subagents --dest ../my-agents --package my_agents
 rulegraph new core --dest ../my-core --package my_core --agents-package my_agents
-rulegraph validate path/to/pack
-rulegraph export taxonomy path/to/pack           # SKOS JSON-LD (or: ontology -> OWL JSON-LD)
+rulegraph --pack path/to/base [--fragment path/to/fragment ...] validate
+rulegraph --pack path/to/base view                                   # offline knowledge browser
+rulegraph --pack path/to/base export graph --format ttl              # also taxonomy, ontology, glossary, shapes, graphml
+rulegraph --pack path/to/base shacl
+rulegraph schemas --out .schemas                                     # JSON Schemas for editors and databases
 pytest kernel/tests
 ```
 

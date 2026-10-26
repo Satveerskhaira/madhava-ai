@@ -6,6 +6,10 @@
     madhava serve --port 8100                                  # core agent over A2A
     madhava mcp                                                # toolbox + core over MCP (stdio)
     madhava eval | validate | cards | gaps
+    madhava view                                               # offline knowledge browser (HTML)
+    madhava export graph --format ttl --out knowledge.ttl      # also taxonomy, ontology, glossary, shapes, graphml
+    madhava shacl                                              # SHACL check of the knowledge graph
+    madhava publish --uri mongodb://localhost:27017            # packs to MongoDB, release "current"
 """
 
 from __future__ import annotations
@@ -112,7 +116,15 @@ def main(argv: list[str] | None = None) -> int:
     m.add_argument("--host", default="127.0.0.1")
     m.add_argument("--port", type=int, default=8200)
     sub.add_parser("gaps", help="show logged coverage gaps (SME backlog)")
+    from rulegraph.commands import add_knowledge_commands, run_knowledge_command
+    add_knowledge_commands(sub)
     args = p.parse_args(argv)
+    if args.cmd in ("view", "export", "shacl", "publish"):
+        import pharmacy_base
+        from .system import build as build_core
+        return run_knowledge_command(
+            args, lambda: build_core(_settings(args)).knowledge,
+            lambda: [pharmacy_base.base_source(), *[pk.source for pk in pharmacy_base.discover_domains()]])
 
     if args.cmd == "ask":
         return asyncio.run(_ask(args))

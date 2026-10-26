@@ -24,6 +24,8 @@ madhava ask RX-1007 "Why did this reject?" --trace      # domain gap -> core gap
 madhava ask RX-1001 "Why was this rejected?" --workflow # core as an ADK workflow graph
 madhava serve --port 8100             # core over A2A
 madhava mcp                           # toolbox + core over MCP (stdio)
+madhava view                          # browse the knowledge: graph, taxonomy, ontology, glossary, rules, policies
+madhava export graph --format ttl     # standard RDF export (also taxonomy, ontology, glossary, shapes, graphml)
 pytest                                # core 24 tests; kernel tests: pytest kernel/tests
 ```
 
@@ -44,6 +46,7 @@ Ask a single domain agent: `pharmacy-domains ask utilization_management RX-1001 
 ## Docs
 
 - [`docs/agent-system.md`](docs/agent-system.md): where the code lives, the three planner levels, knowledge model, memory types, graph search, nested loops with real traces, standards, scaling
+- [`docs/viewing-knowledge.md`](docs/viewing-knowledge.md): browse the knowledge locally, export it for Protégé, yEd or Gephi, schemas in your editor, MongoDB
 - [`docs/claim-explainability-design.md`](docs/claim-explainability-design.md): initial design (v0.1)
 - [`docs/madhava-architecture.html`](docs/madhava-architecture.html): interactive architecture page (open in a browser): layers, step-through flows, backend technology and agent layers. Domain agents run in process inside the core agent; only the core is exposed over A2A.
 

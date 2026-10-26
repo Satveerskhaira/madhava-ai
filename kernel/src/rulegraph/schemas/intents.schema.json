@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rulegraph.dev/schemas/intents.schema.json",
+  "title": "Intent patterns",
+  "type": "object",
+  "properties": {
+    "patterns": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "cost_words": {
+      "type": "string"
+    }
+  }
+}

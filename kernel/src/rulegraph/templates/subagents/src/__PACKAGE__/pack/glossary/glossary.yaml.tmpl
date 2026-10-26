@@ -1,0 +1,14 @@
+# Glossary (SKOS concept scheme): business terms and abbreviations, linked to taxonomy concepts.
+# Code meanings come from the code table automatically.
+scheme: {id: "__DIST__:glossary", prefLabel: Order glossary, namespace: "https://example.org/__DIST__/glossary/"}
+terms:
+  - {id: credit-limit, prefLabel: Credit limit, altLabels: [limit], concepts: [credit.limit],
+     definition: "The most an account may owe at once under its terms."}
+  - {id: credit-used, prefLabel: Credit used, concepts: [credit.limit],
+     definition: "What the account already owes on open orders and invoices."}
+  - {id: delivery-region, prefLabel: Delivery region, altLabels: [region], concepts: [fulfillment.region],
+     definition: "The area an order ships to; account terms list the regions served."}
+  - {id: shipping-fee, prefLabel: Shipping fee, altLabels: [delivery fee], concepts: [charges.shipping],
+     definition: "What the customer pays for delivery to the order's region."}
+  - {id: account-terms, prefLabel: Account terms, altLabels: [terms],
+     definition: "The effective-dated agreement for an account, setting credit, regions, limits and fees."}

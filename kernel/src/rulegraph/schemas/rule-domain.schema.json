@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rulegraph.dev/schemas/rule-domain.schema.json",
+  "title": "Rule domain with effective-dated releases (domain.yaml)",
+  "type": "object",
+  "required": [
+    "domain",
+    "concepts",
+    "owner",
+    "releases"
+  ],
+  "properties": {
+    "domain": {
+      "type": "string"
+    },
+    "concepts": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "owner": {
+      "type": "string"
+    },
+    "rules": {
+      "type": "array"
+    },
+    "releases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "effective_from",
+          "status",
+          "rules"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "effective_from": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "effective_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "enum": [
+              "candidate",
+              "active",
+              "archived",
+              "withdrawn"
+            ]
+          },
+          "change_ref": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "previous": {
+            "type": "string"
+          },
+          "rules": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^\\S+@\\d+$"
+            }
+          }
+        }
+      }
+    }
+  }
+}

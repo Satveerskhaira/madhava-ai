@@ -59,6 +59,9 @@ classes:
     description: The result of evaluating one rule against one claim.
   Evidence:
     description: One input value a finding relied on, with its source path.
+  Term:
+    description: A glossary term or abbreviation (SKOS Concept in the glossary scheme).
+    aligns_with: [SKOS Concept]
 
 relations:
   # taxonomy
@@ -72,8 +75,11 @@ relations:
   overridden_by:  {domain: Rule, range: Rule}
   derived_from:   {domain: Rule, range: Policy}
   member_of:      {domain: Rule, range: RuleSet}
+  supersedes:     {domain: RuleSet, range: RuleSet, aligns_with: prov:wasRevisionOf}
+  about:          {domain: Term, range: Concept, aligns_with: skos:closeMatch}
   # data
   describes:      {domain: Field, range: Concept}
+  depends_on:     {domain: Field, range: Field}
   has_member:     {domain: Claim, range: Member}
   has_drug:       {domain: Claim, range: Drug}
   dispensed_by:   {domain: Claim, range: Pharmacy}

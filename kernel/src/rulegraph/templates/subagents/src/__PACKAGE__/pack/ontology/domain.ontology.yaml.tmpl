@@ -12,6 +12,7 @@ classes:
   Field: {description: A record or reference field in the field catalog.}
   Finding: {description: The result of evaluating one rule.}
   Evidence: {description: One input value a finding relied on.}
+  Term: {description: A glossary term or abbreviation.}
 relations:
   broader: {domain: Concept, range: Concept, aligns_with: "skos:broader"}
   related: {domain: Concept, range: Concept, aligns_with: "skos:related"}
@@ -22,4 +23,7 @@ relations:
   overridden_by: {domain: Rule, range: Rule}
   derived_from: {domain: Rule, range: Policy}
   member_of: {domain: Rule, range: RuleSet}
+  supersedes: {domain: RuleSet, range: RuleSet, aligns_with: "prov:wasRevisionOf"}
+  about: {domain: Term, range: Concept, aligns_with: "skos:closeMatch"}
   describes: {domain: Field, range: Concept}
+  depends_on: {domain: Field, range: Field}

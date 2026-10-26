@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rulegraph.dev/schemas/term.schema.json",
+  "title": "Glossary term (SKOS)",
+  "type": "object",
+  "required": [
+    "id",
+    "prefLabel",
+    "definition"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "prefLabel": {
+      "type": "string"
+    },
+    "definition": {
+      "type": "string",
+      "minLength": 1
+    },
+    "altLabels": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "concepts": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "notation": {
+      "type": "string"
+    },
+    "source": {
+      "type": "string"
+    },
+    "example": {
+      "type": "string"
+    }
+  }
+}

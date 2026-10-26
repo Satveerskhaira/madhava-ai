@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rulegraph.dev/schemas/procedures.schema.json",
+  "title": "Planner procedures",
+  "type": "object",
+  "required": [
+    "procedures"
+  ],
+  "properties": {
+    "procedures": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "intents"
+        ],
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "intents": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "route_from": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "speculative": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "sweep_if_unrouted": {
+            "type": "boolean"
+          },
+          "task_mode": {
+            "enum": [
+              "explain",
+              "what_if",
+              "none"
+            ]
+          },
+          "must_explain": {
+            "enum": [
+              "outcome_tokens",
+              "amount_tokens",
+              "task_tokens",
+              "none"
+            ]
+          },
+          "rules_modes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "loop": {
+            "type": "object",
+            "properties": {
+              "max_rounds": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "expand": {
+                "type": "array",
+                "items": {
+                  "enum": [
+                    "policy_graph",
+                    "related_concepts",
+                    "sweep_scope"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -13,12 +13,15 @@ dependencies = [
   "pyyaml>=6",
   "cel-python>=0.5",
   "httpx>=0.27",
+  "jsonschema>=4.18",
 ]
 
 [project.optional-dependencies]
 adk = ["google-adk[a2a]>=2.12", "a2a-sdk>=1.2"]
 mcp = ["mcp>=2.3"]
-dev = ["pytest>=8", "uvicorn>=0.30"]
+rdf = ["rdflib>=7", "pyshacl>=0.26"]
+mongo = ["pymongo>=4.6"]
+dev = ["pytest>=8", "uvicorn>=0.30", "rdflib>=7", "pyshacl>=0.26", "mongomock>=4.1"]
 
 [project.scripts]
 rulegraph = "rulegraph.cli:main"
@@ -27,7 +30,7 @@ rulegraph = "rulegraph.cli:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-rulegraph = ["templates/**/*", "templates/**/.*", "templates/**/.*/**/*"]
+rulegraph = ["templates/**/*", "templates/**/.*", "templates/**/.*/**/*", "viewer.html", "schemas/*.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

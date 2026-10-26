@@ -112,4 +112,33 @@ def validate(kn: Knowledge) -> list[str]:
         for a in proc.speculative:
             if a != "*" and a not in kn.rules.domains:
                 issues.append(f"domain procedure {name}: unknown rule domain {a}")
+
+    # glossary: every term defined, linked concepts exist, labels unique
+    if kn.glossary:
+        seen: dict[str, str] = {}
+        for t in kn.glossary.terms.values():
+            if not t.definition.strip():
+                issues.append(f"glossary term {t.id}: no definition")
+            for c in t.concepts:
+                if c not in tax.concepts:
+                    issues.append(f"glossary term {t.id}: unknown concept {c}")
+            for label in {t.prefLabel.lower(), *(a.lower() for a in t.altLabels)}:
+                if label in seen and seen[label] != t.id:
+                    issues.append(f"glossary label '{label}' used by {seen[label]} and {t.id}")
+                seen[label] = t.id
+
+    # policy sources: once a pack keeps policy text, every section a rule cites must be there
+    if kn.policies:
+        for key, p in kn.policies.items():
+            if not str(p.get("text", "")).strip():
+                issues.append(f"policy {key}: no text")
+        for card in kn.rules.rules.values():
+            for ref in card.source_refs:
+                key = ref.doc + (f" / {ref.section}" if ref.section else "")
+                if key not in kn.policies:
+                    issues.append(f"rule {card.key}: source '{key}' has no policy section")
+
+    if kn.documents is not None:
+        from ..schemas import schema_issues
+        issues.extend(schema_issues(kn.documents))
     return issues
