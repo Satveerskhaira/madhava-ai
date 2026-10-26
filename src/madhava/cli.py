@@ -116,10 +116,10 @@ def main(argv: list[str] | None = None) -> int:
     m.add_argument("--host", default="127.0.0.1")
     m.add_argument("--port", type=int, default=8200)
     sub.add_parser("gaps", help="show logged coverage gaps (SME backlog)")
-    from rulegraph.commands import add_knowledge_commands, run_knowledge_command
+    from rulegraph.commands import KNOWLEDGE_COMMANDS, add_knowledge_commands, run_knowledge_command
     add_knowledge_commands(sub)
     args = p.parse_args(argv)
-    if args.cmd in ("view", "export", "shacl", "publish"):
+    if args.cmd in KNOWLEDGE_COMMANDS:
         import pharmacy_base
         from .system import build as build_core
         return run_knowledge_command(

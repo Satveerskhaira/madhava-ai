@@ -4,6 +4,7 @@
     export    taxonomy | ontology | glossary (JSON-LD), graph (JSON-LD or Turtle), shapes (SHACL), graphml
     shacl     validate the exported graph against the SHACL shapes
     publish   write the packs to MongoDB and point a release at them
+    knowledge-service   serve the knowledge API and the live browser (from the files, or from MongoDB with --mongo)
 """
 
 from __future__ import annotations
@@ -17,6 +18,8 @@ from typing import Callable
 
 from .knowledge import Knowledge
 from .sources import KnowledgeSource
+
+KNOWLEDGE_COMMANDS = ("view", "export", "shacl", "publish", "knowledge-service")
 
 
 def add_knowledge_commands(sub: argparse._SubParsersAction) -> None:
@@ -34,6 +37,14 @@ def add_knowledge_commands(sub: argparse._SubParsersAction) -> None:
     pb.add_argument("--db", default="knowledge")
     pb.add_argument("--release", default="current")
     pb.add_argument("--note", default="")
+    ks = sub.add_parser("knowledge-service", help="serve the knowledge API and the live knowledge browser")
+    ks.add_argument("--mongo", metavar="URI", help="read published releases from MongoDB (default: the pack files)")
+    ks.add_argument("--db", default="knowledge")
+    ks.add_argument("--release", default="current", help="default release (with --mongo)")
+    ks.add_argument("--host", default="127.0.0.1")
+    ks.add_argument("--port", type=int, default=8300)
+    ks.add_argument("--title")
+    ks.add_argument("--open", action="store_true", help="open the browser page")
 
 
 def _write(text: str, out: str | None) -> None:
@@ -90,5 +101,27 @@ def run_knowledge_command(args: argparse.Namespace, knowledge: Callable[[], Know
         ensure_indexes(db)
         result = publish(db, [s.load() for s in sources()], release=args.release, note=args.note)
         print(json.dumps(result, indent=2))
+        return 0
+    if args.cmd == "knowledge-service":
+        from .service import KnowledgeService, make_server
+        if args.mongo:
+            from pymongo import MongoClient
+            service = KnowledgeService(db=MongoClient(args.mongo)[args.db], default_release=args.release, title=args.title)
+            where = f"MongoDB {args.mongo}, database {args.db}, default release {args.release}"
+        else:
+            service = KnowledgeService(files=knowledge, title=args.title)
+            where = "the pack files"
+        service.load(service.default_release)          # fail fast if the release does not load
+        server = make_server(service, args.host, args.port)
+        url = f"http://{args.host}:{args.port}/"
+        print(f"knowledge service on {url} (reading {where}); API under {url}api/  Ctrl+C to stop")
+        if args.open:
+            webbrowser.open(url)
+        try:
+            server.serve_forever()
+        except KeyboardInterrupt:
+            pass
+        finally:
+            server.server_close()
         return 0
     return None

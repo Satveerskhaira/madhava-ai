@@ -91,7 +91,7 @@ svg .node.sel{stroke:var(--focus);stroke-width:3}
 .legend{display:flex;flex-wrap:wrap;gap:10px;font-size:13px;margin:8px 0}
 .legend span i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px}
 footer{color:var(--muted);font-size:12px;padding:10px 20px 30px}
-button.theme{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:8px;padding:6px 10px;cursor:pointer;font:inherit;font-size:13px}
+.theme{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:8px;padding:6px 10px;cursor:pointer;font:inherit;font-size:13px}
 </style>
 </head>
 <body>
@@ -105,9 +105,30 @@ button.theme{border:1px solid var(--line);background:var(--bg);color:var(--ink);
 <footer id="foot"></footer>
 <script id="data" type="application/json">__DATA__</script>
 <script>
-(function(){
+(async function(){
 "use strict";
-const D = JSON.parse(document.getElementById("data").textContent);
+// Offline mode: the view model is embedded above. Live mode (served by the knowledge service): the blob is
+// null and the page reads the same view model from the API, for the release in ?release= or the default one.
+let D = JSON.parse(document.getElementById("data").textContent);
+const LIVE = !D;
+async function loadLive(){
+  const main = document.getElementById("main");
+  main.innerHTML = '<p class="lead">Loading the knowledge…</p>';
+  try {
+    const rel = await (await fetch("api/releases")).json();
+    const release = new URLSearchParams(location.search).get("release") || rel.default;
+    const res = await fetch("api/releases/" + encodeURIComponent(release) + "/view");
+    if (!res.ok) throw new Error((await res.json()).error || res.statusText);
+    const data = await res.json();
+    data.meta.releases = rel.releases;
+    return data;
+  } catch (e) {
+    main.innerHTML = '<h2>Could not load the knowledge</h2><p class="lead"></p>';
+    main.querySelector("p").textContent = String(e && e.message || e);
+    return null;
+  }
+}
+if (LIVE) { D = await loadLive(); if (!D) return; }
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const by = (arr, key) => Object.fromEntries(arr.map(x => [x[key], x]));
@@ -134,6 +155,15 @@ $("#title").textContent = D.meta.title;
 $("#subtitle").textContent = `${D.meta.origin}`;
 $("#foot").textContent = `Generated ${D.meta.generated} from ${D.meta.origin}. Ontology namespace ${D.meta.namespace}.`;
 document.title = D.meta.title;
+if (LIVE) {
+  const sel = document.createElement("select");
+  sel.className = "theme"; sel.setAttribute("aria-label", "Knowledge release");
+  sel.innerHTML = (D.meta.releases || []).map(r => `<option value="${esc(r.release)}"${r.release === D.meta.release ? " selected" : ""}>Release: ${esc(r.release)}</option>`).join("");
+  sel.addEventListener("change", () => { location.search = "?release=" + encodeURIComponent(sel.value); });
+  $("#theme").before(sel);
+  const api = "api/releases/" + encodeURIComponent(D.meta.release);
+  $("#foot").innerHTML = `Live from ${D.meta.source === "mongodb" ? "MongoDB" : "the pack files"}, release <b>${esc(D.meta.release)}</b>${D.meta.publishedAt ? `, published ${esc(D.meta.publishedAt)}` : ""}. Built ${esc(D.meta.generated)} from ${esc(D.meta.origin)}. API: <a href="${api}/view">view</a> · <a href="${api}/graph">graph</a> · <a href="${api}/export/graph.ttl">graph.ttl</a> · <a href="${api}/export/graph.jsonld">graph.jsonld</a> · <a href="api/releases">releases</a>`;
+}
 const TABS = [["overview","Overview"],["graph","Graph"],["taxonomy","Taxonomy"],["ontology","Ontology"],["glossary","Glossary"],
               ["rules","Rules"],["fields","Fields"],["policies","Policies"],["outcomes","Outcomes"]];
 $("#tabs").innerHTML = TABS.map(([k, l]) => `<a href="#/${k}" data-tab="${k}">${l}</a>`).join("");

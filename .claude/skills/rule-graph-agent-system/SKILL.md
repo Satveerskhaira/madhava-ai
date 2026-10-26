@@ -122,6 +122,7 @@ Only at the edges. ADK is implemented and tested (`rulegraph.adapters.adk`: `bui
 - `export graph --format ttl|jsonld`, `export taxonomy|ontology|glossary|shapes|graphml`: standard files for Protégé, graph stores, yEd or Gephi.
 - `shacl`: the exported graph must conform to its shapes.
 - `publish`: packs to MongoDB with a release pointer, when the knowledge moves off files.
+- `knowledge-service [--mongo URI]`: the read API (`/api/releases/{r}/view|rules/{id}|graph|search|export/...`) and the same page in live mode with a release picker. Store only authored documents; the graph, outcomes and cross references are derived per release, so the browser always shows what the agents use. Reloads when a release's `published_at` changes; ETag per publish.
 
 ### 9. Verify and hand over
 

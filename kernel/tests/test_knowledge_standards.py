@@ -170,3 +170,41 @@ def test_cli_view_export_schemas(pack, tmp_path):
     assert json.loads((tmp_path / "k.jsonld").read_text())["@graph"]
     assert main(["schemas", "--out", str(tmp_path / "schemas")]) == 0
     assert len(list((tmp_path / "schemas").glob("*.schema.json"))) == 12
+
+
+def test_knowledge_service_serves_mongodb_releases_and_the_live_page(pack, kn):
+    mongomock = pytest.importorskip("mongomock")
+    from rulegraph.adapters.mongodb import publish
+    from rulegraph.service import KnowledgeService
+    db = mongomock.MongoClient()["k"]
+    publish(db, [DirectorySource(pack).load()], release="current")
+    svc = KnowledgeService(db=db, title="Shop")
+
+    status, ctype, body, _ = svc.handle("/", {})
+    assert status == 200 and b'type="application/json">null</script>' in body and b"api/releases" in body
+    status, _, body, _ = svc.handle("/api/releases", {})
+    assert json.loads(body)["releases"][0]["release"] == "current"
+    status, _, body, headers = svc.handle("/api/releases/current/view", {})
+    view = json.loads(body)
+    assert status == 200 and view["meta"]["source"] == "mongodb" and len(view["rules"]) == len(kn.rules.rule_ids())
+    assert len(view["graph"]["edges"]) == kn.graph.edge_count
+    assert svc.handle("/api/releases/current/view", {}, headers["ETag"])[0] == 304       # unchanged release
+
+    rule = json.loads(svc.handle("/api/releases/current/rules/R-CR-001", {})[2])
+    assert "Credit Policy / 2.1" in rule["policyText"]
+    focus = json.loads(svc.handle("/api/releases/current/graph", {"focus": ["rule:R-CR-001"]})[2])
+    assert {"rule:R-CR-001", "policy:Credit Policy / 2.1"} <= {n["id"] for n in focus["nodes"]}
+    hits = json.loads(svc.handle("/api/releases/current/search", {"q": ["credit limit"]})[2])
+    assert hits and hits[0]["node"] == "term:credit-limit"
+    assert svc.handle("/api/releases/current/export/knowledge.graphml", {})[0] == 200
+    assert svc.handle("/api/releases/missing/view", {})[0] == 404
+
+    # a republish is picked up on the next request, with a new ETag
+    publish(db, [DirectorySource(pack).load()], release="current", note="again")
+    assert svc.handle("/api/releases/current/view", {}, headers["ETag"])[0] == 200
+
+
+def test_knowledge_service_serves_files_too(kn):
+    from rulegraph.service import KnowledgeService
+    svc = KnowledgeService(files=lambda: kn)
+    assert json.loads(svc.handle("/api/releases/files/meta", {})[2])["source"] == "files"

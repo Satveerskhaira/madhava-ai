@@ -290,6 +290,7 @@ Other agent SDKs (LangGraph, OpenAI Agents SDK, Claude Agent SDK, CrewAI) attach
 pip install -r requirements-dev.txt                # kernel and base (this repo), domain packages (pinned), core
 madhava validate                                   # schemas, cross-file checks, core procedures
 madhava view                                       # offline knowledge browser (docs/viewing-knowledge.md)
+madhava knowledge-service --mongo mongodb://127.0.0.1:27017   # knowledge API + live browser (docs/knowledge-application.md)
 madhava export graph --format ttl --out k.ttl      # also taxonomy, ontology, glossary, shapes, graphml
 madhava shacl                                      # SHACL check of the knowledge graph
 madhava publish --uri mongodb://localhost:27017    # packs to MongoDB

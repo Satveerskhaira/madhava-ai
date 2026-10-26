@@ -2,6 +2,7 @@
 
     rulegraph view <pack> [--fragment DIR ...] --out knowledge.html
     madhava view --out knowledge.html          # the composed pharmacy knowledge
+    madhava knowledge-service                  # the same page, live from the knowledge service API
 
 Pages: overview, interactive graph, taxonomy, ontology, glossary, rules (versions, CEL, sources),
 fields, policies, outcomes. Every item links to the items it is connected to.
@@ -125,6 +126,13 @@ def view_data(kn: Knowledge, title: str | None = None) -> dict[str, Any]:
         "graph": {"nodes": nodes, "edges": [[s, r, d] for s, r, d in edges],
                   "groups": [{"id": a, "label": agent_label.get(a, a)} for a in order]},
     }
+
+
+def render_live_html(title: str = "Knowledge") -> str:
+    """The same page with no data embedded: it reads the view model from the knowledge service API."""
+    page = (resources.files("rulegraph") / "viewer.html").read_text()
+    safe = title.replace("&", "&amp;").replace("<", "&lt;")
+    return page.replace("__TITLE__", safe).replace("__DATA__", "null")
 
 
 def render_html(kn: Knowledge, title: str | None = None) -> str:

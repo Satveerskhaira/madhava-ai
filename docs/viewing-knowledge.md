@@ -33,6 +33,15 @@ pharmacy-domains view                    # only the domain packages installed (e
 rulegraph --pack path/to/base --fragment path/to/fragment view    # any pack on disk, no Python package needed
 ```
 
+### Live from MongoDB
+
+```bash
+madhava publish --uri mongodb://127.0.0.1:27017 --release current
+madhava knowledge-service --mongo mongodb://127.0.0.1:27017 --open     # http://127.0.0.1:8300/
+```
+
+The same page, reading the knowledge service API instead of embedded data, with a release picker. `scripts/run-local.sh` sets all of this up (MongoDB in Docker, two releases, the service). The API, the stored formats and how each tab is rendered are in [knowledge-application.md](knowledge-application.md).
+
 ## 2. Standard exports, for other tools
 
 ```bash
