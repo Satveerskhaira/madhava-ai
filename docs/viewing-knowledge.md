@@ -26,6 +26,8 @@ One self-contained HTML file (no CDN, no server), so it works offline and can be
 
 Every coloured name opens a detail panel with links to what it connects to. The search box finds terms, abbreviations, concepts, rules, fields and policy text.
 
+A snapshot of the page is committed at [`docs/knowledge.html`](knowledge.html): download it and open it in any browser. It reflects the knowledge when it was last regenerated; refresh it with `madhava view --no-open --title "Pharmacy claims knowledge" --out docs/knowledge.html` when rules change.
+
 Other ways to open it:
 
 ```bash

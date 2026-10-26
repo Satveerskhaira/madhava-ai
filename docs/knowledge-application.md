@@ -568,6 +568,8 @@ For the full pharmacy knowledge this is about 110 KB of JSON: 21 concepts, 52 te
 | Footer | "Generated … from …" | "Live from MongoDB, release …, published …" with API links |
 | Use | email it, attach it to a ticket, review offline | the running application |
 
+A snapshot of the offline file is committed at [`docs/knowledge.html`](knowledge.html).
+
 The page code is the same file (`rulegraph/viewer.html`) in both modes. On load it reads the data block, and if that is `null` it fetches the view model before rendering anything.
 
 ### 6.3 What each tab reads and draws
