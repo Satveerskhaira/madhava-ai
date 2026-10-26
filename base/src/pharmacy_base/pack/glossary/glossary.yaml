@@ -1,0 +1,132 @@
+# Glossary (SKOS concept scheme): terms and abbreviations shared by every pharmacy domain.
+# Domain-specific terms live in each domain fragment. Code meanings come from the code table automatically.
+
+scheme:
+  id: pharmacy:glossary
+  prefLabel: Pharmacy claims glossary
+  namespace: https://example.org/pharmacy/glossary/
+  version: '2026.10'
+terms:
+- id: claim
+  prefLabel: Pharmacy claim
+  definition: A pharmacy's request to the plan to pay for one fill of a prescription, sent in the NCPDP Telecommunication
+    format.
+  altLabels:
+  - claim
+  - fill
+- id: adjudication
+  prefLabel: Adjudication
+  definition: 'The automated decision a claims engine makes on a claim: paid or rejected, and what the member and
+    plan each pay.'
+  altLabels:
+  - adjudicated
+  - adjudicate
+- id: reject-code
+  prefLabel: Reject code
+  definition: An NCPDP code returned on a rejected claim that names the reason, for example 75 for prior authorization
+    required.
+  altLabels:
+  - reject reason
+  - NCPDP reject code
+- id: date-of-service
+  prefLabel: Date of service
+  definition: The date the prescription was filled. It decides which plan setup version and which rules apply.
+  altLabels:
+  - DOS
+  - fill date
+- id: plan-setup
+  prefLabel: Plan setup
+  definition: 'The benefit configuration of a plan: formulary, tiers, limits, cost share and clinical edits. Versioned
+    by effective date and read through the plan setup API.'
+  altLabels:
+  - benefit setup
+  - plan configuration
+- id: ndc
+  prefLabel: National Drug Code
+  definition: The 11-digit code that identifies a drug product, strength and package.
+  altLabels:
+  - NDC
+- id: gpi
+  prefLabel: Generic Product Identifier
+  definition: A hierarchical drug classification code used to group equivalent drugs for formulary and edit rules.
+  altLabels:
+  - GPI
+- id: formulary
+  prefLabel: Formulary
+  definition: The list of drugs a plan covers, with the tier and conditions for each.
+  altLabels:
+  - drug list
+  concepts:
+  - coverage
+- id: tier
+  prefLabel: Formulary tier
+  definition: The cost level a drug sits on in the formulary. Higher tiers usually mean higher member cost and more
+    controls.
+  altLabels:
+  - drug tier
+  concepts:
+  - coverage
+- id: days-supply
+  prefLabel: Days supply
+  definition: How many days the dispensed quantity should last at the prescribed dose.
+  altLabels:
+  - DS
+- id: channel
+  prefLabel: Pharmacy channel
+  definition: 'Where the drug is dispensed: retail, mail order or specialty pharmacy.'
+  altLabels:
+  - dispensing channel
+  concepts:
+  - network
+- id: specialty-drug
+  prefLabel: Specialty drug
+  definition: A high-cost drug for complex conditions, often limited to specialty pharmacies or short retail fills.
+  altLabels:
+  - specialty medication
+  concepts:
+  - network
+- id: cost-share
+  prefLabel: Cost share
+  definition: 'The part of the drug cost the member pays: copay, coinsurance or deductible.'
+  altLabels:
+  - member cost share
+  concepts:
+  - cost_share
+- id: patient-pay
+  prefLabel: Patient pay amount
+  definition: What the member paid at the pharmacy for the fill, returned on the claim response.
+  altLabels:
+  - member paid
+  - patient pay
+  concepts:
+  - cost_share
+- id: pbm
+  prefLabel: Pharmacy benefit manager
+  definition: The company that administers the pharmacy benefit, including claim adjudication, for a plan sponsor.
+  altLabels:
+  - PBM
+- id: rule-card
+  prefLabel: Rule card
+  definition: 'One versioned business rule: what it reads, its CEL condition, the outcome it explains, its wording
+    and its source. Approved by an SME.'
+  altLabels:
+  - rule
+- id: rule-set
+  prefLabel: Rule set
+  definition: An effective-dated release of a rule domain's rules. Old claims are explained with the rule set in
+    force on their date.
+  altLabels:
+  - release
+- id: rules-mode
+  prefLabel: Rules mode
+  definition: 'Which rules to apply when explaining: as adjudicated (in force at the time), current (today) or as
+    of a chosen date.'
+  altLabels:
+  - as adjudicated
+  - current rules
+- id: explanation-confidence
+  prefLabel: Explanation confidence
+  definition: 'How sure an explanation is: confirmed (rule fired and matches the outcome), likely, unverified (inputs
+    missing) or unexplained (no rule found, logged for SMEs).'
+  altLabels:
+  - confidence

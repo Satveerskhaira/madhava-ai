@@ -5,8 +5,8 @@ ontology, code table, the top of the taxonomy (one concept per domain agent,
 with decision order), common catalog fields, and the shared procedures.
 
 A *fragment* adds one or more domains to a base: taxonomy concepts under the
-base's top concepts, catalog fields, rule domains with their rules, and
-per-agent investigator notes. Each domain can live in its own repository and
+base's top concepts, catalog fields, rule domains with their rules, glossary
+terms, the policy sections its rules cite, and per-agent investigator notes. Each domain can live in its own repository and
 release on its own; `compose` merges them and refuses conflicts.
 
 Every source produces the same plain documents (dicts), so a pack can come
@@ -46,6 +46,9 @@ class PackDocuments:
     investigator: dict[str, Any] | None = None          # {default: {...}, agents: {name: {notes}}}
     domain_planner: dict[str, Any] | None = None        # {procedures: {...}}
     intents: dict[str, Any] | None = None               # {patterns: {...}, cost_words: ...}
+    glossary_scheme: dict[str, Any] | None = None       # SKOS concept scheme of the glossary (base)
+    terms: list[dict[str, Any]] = field(default_factory=list)      # glossary terms (SKOS concepts)
+    policies: list[dict[str, Any]] = field(default_factory=list)   # source policy sections with text
     origin: str = ""
     root: Path | None = None
 
@@ -74,6 +77,8 @@ class DirectorySource:
 
         tax = _yaml(f("taxonomy")) if f("taxonomy") else {}
         codes = _yaml(f("codes"))["codes"] if f("codes") else {}
+        glossary = (_yaml(f("glossary")) or {}) if f("glossary") else {}
+        policies = (_yaml(f("policies")) or {}).get("policies", []) if f("policies") else []
         return PackDocuments(
             name=manifest["name"], kind=manifest.get("kind", "base"), extends=manifest.get("extends"),
             manifest=manifest, scheme=tax.get("scheme"), concepts=tax.get("concepts", []),
@@ -84,6 +89,7 @@ class DirectorySource:
             investigator=_yaml(f("investigator")) if f("investigator") else None,
             domain_planner=_yaml(f("domain_planner")) if f("domain_planner") else None,
             intents=_yaml(f("intents")) if f("intents") else None,
+            glossary_scheme=glossary.get("scheme"), terms=glossary.get("terms", []), policies=policies,
             origin=str(self.root), root=self.root,
         )
 
@@ -96,6 +102,11 @@ class DocumentSource:
 
     def load(self) -> PackDocuments:
         return copy.deepcopy(self.documents)
+
+
+def policy_key(p: dict[str, Any]) -> str:
+    """The id of a policy section, as rule cards cite it: `<doc>` or `<doc> / <section>`."""
+    return p["doc"] + (f" / {p['section']}" if p.get("section") else "")
 
 
 class CompositionError(ValueError):
@@ -113,6 +124,8 @@ def compose(packs: list[PackDocuments]) -> PackDocuments:
     field_owner = {fd["path"]: (base.name, fd) for fd in base.fields}
     domain_owner = {d["domain"]: base.name for d in base.domains}
     notation_owner = {n: c["id"] for c in base.concepts for n in c.get("notations", [])}
+    term_owner = {t["id"]: base.name for t in base.terms}
+    policy_owner = {policy_key(p): base.name for p in base.policies}
     names = {base.name}
     for frag in (p for p in packs if p.kind != "base"):
         if frag.name in names:
@@ -149,6 +162,19 @@ def compose(packs: list[PackDocuments]) -> PackDocuments:
                 continue
             domain_owner[d["domain"]] = frag.name
             base.domains.append(d)
+        for t in frag.terms:
+            if t["id"] in term_owner:
+                errors.append(f"glossary term {t['id']} defined by {term_owner[t['id']]} and {frag.name}")
+                continue
+            term_owner[t["id"]] = frag.name
+            base.terms.append(t)
+        for p in frag.policies:
+            key = policy_key(p)
+            if key in policy_owner:
+                errors.append(f"policy section {key} defined by {policy_owner[key]} and {frag.name}")
+                continue
+            policy_owner[key] = frag.name
+            base.policies.append(p)
         if frag.ontology:
             onto = base.ontology or {"classes": {}, "relations": {}}
             for kind in ("classes", "relations"):
@@ -165,7 +191,7 @@ def compose(packs: list[PackDocuments]) -> PackDocuments:
             for agent, spec in (frag.investigator.get("agents") or {}).items():
                 inv["agents"][agent] = spec
             base.investigator = inv
-        for key in ("domain_planner", "intents", "scheme"):
+        for key in ("domain_planner", "intents", "scheme", "glossary_scheme"):
             if getattr(frag, key):
                 errors.append(f"fragment {frag.name} may not set {key}; it belongs to the base pack")
     if errors:

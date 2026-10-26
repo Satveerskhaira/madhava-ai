@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rulegraph.dev/schemas/ontology.schema.json",
+  "title": "Ontology (classes and typed relations)",
+  "type": "object",
+  "required": [
+    "namespace",
+    "classes",
+    "relations"
+  ],
+  "properties": {
+    "namespace": {
+      "type": "string"
+    },
+    "version": {
+      "type": [
+        "string",
+        "number"
+      ]
+    },
+    "classes": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object"
+      }
+    },
+    "relations": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "domain",
+          "range"
+        ],
+        "properties": {
+          "domain": {
+            "type": "string"
+          },
+          "range": {
+            "type": "string"
+          },
+          "aligns_with": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

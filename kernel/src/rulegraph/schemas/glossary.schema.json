@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rulegraph.dev/schemas/glossary.schema.json",
+  "title": "Glossary file",
+  "type": "object",
+  "properties": {
+    "scheme": {
+      "type": "object",
+      "required": [
+        "id",
+        "prefLabel"
+      ]
+    },
+    "terms": {
+      "type": "array",
+      "items": {
+        "$ref": "term.schema.json"
+      }
+    }
+  }
+}

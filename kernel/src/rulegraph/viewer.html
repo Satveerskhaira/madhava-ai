@@ -1,0 +1,518 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>__TITLE__</title>
+<style>
+:root{
+  --bg:#f6f7f9; --panel:#ffffff; --ink:#17202b; --muted:#5b6675; --line:#dfe3e8; --soft:#eef1f4; --accent:#0f766e;
+  --k-concept:#0f766e; --k-term:#7c3aed; --k-rule:#b45309; --k-field:#2563eb; --k-outcome:#be123c;
+  --k-policy:#4b5563; --k-ruleset:#a21caf; --code:#f1f3f5; --focus:#f59e0b;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f141a; --panel:#161d25; --ink:#e6ebf0; --muted:#9aa7b4; --line:#2a3440; --soft:#1d2630; --accent:#2dd4bf;
+    --k-concept:#2dd4bf; --k-term:#a78bfa; --k-rule:#f59e0b; --k-field:#60a5fa; --k-outcome:#fb7185;
+    --k-policy:#9ca3af; --k-ruleset:#e879f9; --code:#0d1319; --focus:#fbbf24; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f141a; --panel:#161d25; --ink:#e6ebf0; --muted:#9aa7b4; --line:#2a3440; --soft:#1d2630; --accent:#2dd4bf;
+  --k-concept:#2dd4bf; --k-term:#a78bfa; --k-rule:#f59e0b; --k-field:#60a5fa; --k-outcome:#fb7185;
+  --k-policy:#9ca3af; --k-ruleset:#e879f9; --code:#0d1319; --focus:#fbbf24; color-scheme: dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+a{color:inherit}
+code,pre,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.86em}
+pre{background:var(--code);border:1px solid var(--line);border-radius:6px;padding:10px 12px;overflow-x:auto;white-space:pre-wrap;margin:6px 0}
+.top{position:sticky;top:0;z-index:5}
+header{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;padding:14px 20px;background:var(--panel);border-bottom:1px solid var(--line)}
+header .sub{overflow-wrap:anywhere}
+header h1{font-size:17px;margin:0;font-weight:650}
+header .sub{color:var(--muted);font-size:13px}
+.search{position:relative;margin-left:auto;flex:1 1 260px;max-width:440px}
+.search input{width:100%;padding:8px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit}
+.results{position:absolute;left:0;right:0;top:40px;background:var(--panel);border:1px solid var(--line);border-radius:8px;max-height:60vh;overflow:auto;box-shadow:0 8px 24px rgba(0,0,0,.18);display:none}
+.results div{padding:7px 10px;cursor:pointer;display:flex;gap:8px;align-items:baseline}
+.results div:hover,.results div.on{background:var(--soft)}
+nav{display:flex;gap:2px;padding:0 14px;background:var(--panel);border-bottom:1px solid var(--line);overflow-x:auto}
+nav a{padding:10px 12px;text-decoration:none;color:var(--muted);font-weight:550;border-bottom:2px solid transparent;white-space:nowrap}
+nav a.on{color:var(--ink);border-bottom-color:var(--accent)}
+.wrap{display:grid;grid-template-columns:minmax(0,1fr);gap:0}
+@media(min-width:1100px){.wrap.split{grid-template-columns:minmax(0,1fr) 420px}}
+main{padding:20px;min-width:0}
+aside{background:var(--panel);border-left:1px solid var(--line);padding:18px 20px;min-width:0;display:none}
+.wrap.split aside{display:block;position:sticky;top:var(--top,100px);max-height:calc(100vh - var(--top,100px));overflow:auto}
+@media(max-width:1099px){.wrap.split aside{position:fixed;inset:auto 0 0 0;max-height:70vh;border-top:1px solid var(--line);border-left:0;box-shadow:0 -10px 30px rgba(0,0,0,.25);z-index:6}}
+aside .close{float:right;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:6px;padding:2px 9px;cursor:pointer}
+h2{font-size:20px;margin:0 0 4px} h3{font-size:15px;margin:18px 0 6px} .lead{color:var(--muted);margin:0 0 16px;max-width:75ch}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin:14px 0 22px}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;text-decoration:none}
+.tile b{display:block;font-size:24px;font-variant-numeric:tabular-nums} .tile span{color:var(--muted);font-size:13px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:0 0 12px}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr);gap:12px} @media(min-width:900px){.grid2{grid-template-columns:repeat(2,minmax(0,1fr))}}
+table{border-collapse:collapse;width:100%;background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden;font-size:14px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{background:var(--soft);font-weight:600;font-size:13px;position:sticky;top:0}
+.tablewrap{overflow-x:auto;border-radius:10px}
+.ref{text-decoration:none;border-bottom:1px dotted currentColor;cursor:pointer;font-weight:550}
+.k-concept{color:var(--k-concept)} .k-term{color:var(--k-term)} .k-rule{color:var(--k-rule)} .k-field{color:var(--k-field)}
+.k-outcome{color:var(--k-outcome)} .k-policy{color:var(--k-policy)} .k-ruleset{color:var(--k-ruleset)}
+.badge{display:inline-block;font-size:11px;font-weight:650;letter-spacing:.02em;padding:1px 7px;border-radius:99px;border:1px solid currentColor;text-transform:uppercase;white-space:nowrap}
+.pill{display:inline-block;font-size:12px;padding:1px 8px;border-radius:99px;background:var(--soft);margin:2px 4px 2px 0}
+.muted{color:var(--muted)} .row{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline}
+dl.kv{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:4px 12px;margin:8px 0} dl.kv dt{color:var(--muted)} dl.kv dd{margin:0;min-width:0;overflow-wrap:anywhere}
+.filter{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px} .filter input[type=text]{padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);font:inherit;min-width:220px}
+.chip{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:99px;padding:4px 11px;font:inherit;font-size:13px;cursor:pointer}
+.chip.on{background:var(--soft);border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.chip:not(.on){opacity:.6}
+.gtools{position:absolute;right:10px;top:10px;display:flex;gap:6px}
+.chip i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:0}
+.tree{list-style:none;padding-left:18px;margin:4px 0;border-left:1px solid var(--line)}
+.tree li{margin:6px 0}
+.versions{display:flex;gap:6px;margin:6px 0 10px;flex-wrap:wrap}
+.quote{border-left:3px solid var(--line);padding:2px 0 2px 12px;color:var(--ink);margin:6px 0}
+.sample{color:var(--muted);font-size:12px}
+#graphbox{background:var(--panel);border:1px solid var(--line);border-radius:10px;height:min(72vh,780px);position:relative;overflow:hidden;touch-action:none}
+#graphbox svg{width:100%;height:100%;display:block;cursor:grab}
+#graphbox svg.dragging{cursor:grabbing}
+.gl{position:absolute;left:10px;bottom:8px;font-size:12px;color:var(--muted);background:var(--panel);padding:2px 6px;border-radius:6px}
+svg text{font:11px system-ui,sans-serif;fill:var(--ink);paint-order:stroke;stroke:var(--panel);stroke-width:3px;pointer-events:none}
+svg .edge{stroke:var(--line);stroke-width:1}
+svg text.glabel{font-size:20px;font-weight:700;fill:var(--muted);stroke-width:5px;opacity:.85}
+svg .edge.hi{stroke:var(--accent);stroke-width:2}
+svg .node{cursor:pointer;stroke:var(--panel);stroke-width:1.5}
+svg .node.dim,svg .edge.dim,svg text.dim{opacity:.12}
+svg .node.sel{stroke:var(--focus);stroke-width:3}
+.legend{display:flex;flex-wrap:wrap;gap:10px;font-size:13px;margin:8px 0}
+.legend span i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px}
+footer{color:var(--muted);font-size:12px;padding:10px 20px 30px}
+.theme{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:8px;padding:6px 10px;cursor:pointer;font:inherit;font-size:13px}
+</style>
+</head>
+<body>
+<div class="top" id="top"><header>
+  <div><h1 id="title"></h1><div class="sub" id="subtitle"></div></div>
+  <div class="search"><input id="q" type="search" placeholder="Search terms, concepts, rules, fields, policies…" autocomplete="off" aria-label="Search the knowledge"><div class="results" id="results" role="listbox"></div></div>
+  <button class="theme" id="theme" title="Switch light or dark">Theme</button>
+</header>
+<nav id="tabs"></nav></div>
+<div class="wrap" id="wrap"><main id="main"></main><aside id="detail" aria-live="polite"></aside></div>
+<footer id="foot"></footer>
+<script id="data" type="application/json">__DATA__</script>
+<script>
+(async function(){
+"use strict";
+// Offline mode: the view model is embedded above. Live mode (served by the knowledge service): the blob is
+// null and the page reads the same view model from the API, for the release in ?release= or the default one.
+let D = JSON.parse(document.getElementById("data").textContent);
+const LIVE = !D;
+async function loadLive(){
+  const main = document.getElementById("main");
+  main.innerHTML = '<p class="lead">Loading the knowledge…</p>';
+  try {
+    const rel = await (await fetch("api/releases")).json();
+    const release = new URLSearchParams(location.search).get("release") || rel.default;
+    const res = await fetch("api/releases/" + encodeURIComponent(release) + "/view");
+    if (!res.ok) throw new Error((await res.json()).error || res.statusText);
+    const data = await res.json();
+    data.meta.releases = rel.releases;
+    return data;
+  } catch (e) {
+    main.innerHTML = '<h2>Could not load the knowledge</h2><p class="lead"></p>';
+    main.querySelector("p").textContent = String(e && e.message || e);
+    return null;
+  }
+}
+if (LIVE) { D = await loadLive(); if (!D) return; }
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const by = (arr, key) => Object.fromEntries(arr.map(x => [x[key], x]));
+const C = by(D.concepts, "id"), T = by(D.terms, "id"), R = by(D.rules, "id"), F = by(D.fields, "path"),
+      P = by(D.policies, "key"), O = by(D.outcomes, "token"), RS = by(D.rulesets, "id"),
+      CL = by(D.ontology.classes, "name"), REL = by(D.ontology.relations, "name");
+const KIND_LABEL = {concept:"Concept", term:"Term", rule:"Rule", field:"Field", outcome:"Outcome", policy:"Policy", ruleset:"Rule set", class:"Class", relation:"Relation"};
+const KIND_COLOR = k => `var(--k-${k})`;
+const setTop = () => document.documentElement.style.setProperty("--top", document.getElementById("top").offsetHeight + "px");
+window.addEventListener("resize", setTop); setTimeout(setTop, 0);
+
+function ref(kind, id, label){
+  const known = {concept:C, term:T, rule:R, field:F, policy:P, outcome:O, ruleset:RS, class:CL, relation:REL}[kind];
+  if (known && !known[id]) return `<span class="muted">${esc(label ?? id)}</span>`;
+  return `<a class="ref k-${kind}" data-ref="${esc(kind)}:${esc(id)}" href="#">${esc(label ?? id)}</a>`;
+}
+const refs = (kind, ids, labeler) => (ids && ids.length) ? ids.map(i => ref(kind, i, labeler ? labeler(i) : undefined)).join(", ") : '<span class="muted">none</span>';
+const badge = kind => `<span class="badge k-${kind}">${esc(KIND_LABEL[kind] || kind)}</span>`;
+const cLabel = id => C[id] ? C[id].label : id;
+const latest = r => r.versions[r.versions.length - 1];
+
+// ------------------------------------------------------------ header, tabs
+$("#title").textContent = D.meta.title;
+$("#subtitle").textContent = `${D.meta.origin}`;
+$("#foot").textContent = `Generated ${D.meta.generated} from ${D.meta.origin}. Ontology namespace ${D.meta.namespace}.`;
+document.title = D.meta.title;
+if (LIVE) {
+  const sel = document.createElement("select");
+  sel.className = "theme"; sel.setAttribute("aria-label", "Knowledge release");
+  sel.innerHTML = (D.meta.releases || []).map(r => `<option value="${esc(r.release)}"${r.release === D.meta.release ? " selected" : ""}>Release: ${esc(r.release)}</option>`).join("");
+  sel.addEventListener("change", () => { location.search = "?release=" + encodeURIComponent(sel.value); });
+  $("#theme").before(sel);
+  const api = "api/releases/" + encodeURIComponent(D.meta.release);
+  $("#foot").innerHTML = `Live from ${D.meta.source === "mongodb" ? "MongoDB" : "the pack files"}, release <b>${esc(D.meta.release)}</b>${D.meta.publishedAt ? `, published ${esc(D.meta.publishedAt)}` : ""}. Built ${esc(D.meta.generated)} from ${esc(D.meta.origin)}. API: <a href="${api}/view">view</a> · <a href="${api}/graph">graph</a> · <a href="${api}/export/graph.ttl">graph.ttl</a> · <a href="${api}/export/graph.jsonld">graph.jsonld</a> · <a href="api/releases">releases</a>`;
+}
+const TABS = [["overview","Overview"],["graph","Graph"],["taxonomy","Taxonomy"],["ontology","Ontology"],["glossary","Glossary"],
+              ["rules","Rules"],["fields","Fields"],["policies","Policies"],["outcomes","Outcomes"]];
+$("#tabs").innerHTML = TABS.map(([k, l]) => `<a href="#/${k}" data-tab="${k}">${l}</a>`).join("");
+let theme = null;
+try { theme = localStorage.getItem("rg-theme"); } catch (e) {}
+if (theme) document.documentElement.dataset.theme = theme;
+$("#theme").onclick = () => {
+  const dark = matchMedia("(prefers-color-scheme: dark)").matches;
+  const cur = document.documentElement.dataset.theme || (dark ? "dark" : "light");
+  const next = cur === "dark" ? "light" : "dark";
+  document.documentElement.dataset.theme = next;
+  try { localStorage.setItem("rg-theme", next); } catch (e) {}
+};
+
+// ------------------------------------------------------------ pages
+const pages = {};
+pages.overview = () => {
+  const tops = D.concepts.filter(c => c.isTop).sort((a, b) => a.precedence - b.precedence);
+  const changes = D.rulesets.filter(r => r.previous);
+  const count = (n, l, tab) => `<a class="tile" href="#/${tab}"><b>${n}</b><span>${l}</span></a>`;
+  const edgesBy = {}; D.graph.edges.forEach(e => edgesBy[e[1]] = (edgesBy[e[1]] || 0) + 1);
+  return `<h2>Knowledge overview</h2>
+  <p class="lead">Everything the agents know, linked. The <b>ontology</b> is the schema; the <b>taxonomy</b> classifies outcomes and decides which agent owns them; the <b>glossary</b> defines the words; <b>rules</b> hold the logic and cite <b>policies</b>; <b>fields</b> say where each value lives in the ${esc(D.meta.recordNoun)} and ${esc(D.meta.referenceNoun)} APIs. Click any coloured name to see what it connects to.</p>
+  <div class="tiles">
+    ${count(D.concepts.length, "taxonomy concepts", "taxonomy")}
+    ${count(D.terms.filter(t => t.kind === "term").length, "glossary terms", "glossary")}
+    ${count(D.rules.length, `rules (${D.rules.reduce((n, r) => n + r.versions.length, 0)} versions)`, "rules")}
+    ${count(D.rulesets.length, "rule sets", "rules")}
+    ${count(D.fields.length, "catalog fields", "fields")}
+    ${count(D.policies.length, "policy sections", "policies")}
+    ${count(D.outcomes.length, "outcomes", "outcomes")}
+    ${count(D.ontology.classes.length + " / " + D.ontology.relations.length, "ontology classes / relations", "ontology")}
+    ${count(D.graph.nodes.length + " / " + D.graph.edges.length, "graph nodes / edges", "graph")}
+  </div>
+  <div class="grid2">
+    <div class="card"><h3 style="margin-top:0">Decision order (who owns what)</h3>
+      <div class="tablewrap"><table><tr><th>#</th><th>Domain agent</th><th>Rule domains</th><th>Outcomes</th></tr>
+      ${tops.map(t => { const leaves = D.concepts.filter(c => !c.isTop && c.agent === t.agent);
+        return `<tr><td>${t.precedence}</td><td>${ref("concept", t.id, t.label)}<div class="muted mono">${esc(t.agent)}</div></td>
+        <td>${[...new Set(leaves.map(l => l.ruleDomain).filter(Boolean))].map(x => `<span class="pill mono">${esc(x)}</span>`).join("")}</td>
+        <td>${refs("outcome", leaves.flatMap(l => l.notations))}</td></tr>`; }).join("")}
+      </table></div></div>
+    <div class="card"><h3 style="margin-top:0">Graph edges by relation</h3>
+      <div class="tablewrap"><table><tr><th>Relation</th><th>Edges</th><th>Meaning</th></tr>
+      ${Object.entries(edgesBy).sort((a, b) => b[1] - a[1]).map(([r, n]) => `<tr><td>${ref("relation", r)}</td><td>${n}</td><td class="muted">${esc(REL[r] ? `${REL[r].domain} → ${REL[r].range}` : "")}</td></tr>`).join("")}
+      </table></div>
+      ${changes.length ? `<h3>Rule set changes</h3>${changes.map(r => `<p>${ref("ruleset", r.id)} (from ${esc(r.from)}) replaces ${ref("ruleset", r.previous)}: ${esc(r.reason || "")}</p>`).join("")}` : ""}
+    </div>
+  </div>`;
+};
+
+pages.taxonomy = () => {
+  const tops = D.concepts.filter(c => c.isTop).sort((a, b) => a.precedence - b.precedence);
+  const node = c => `<li>${ref("concept", c.id, c.label)} <span class="muted mono">${esc(c.id)}</span>
+    ${c.ruleDomain ? `<span class="pill mono">rule domain: ${esc(c.ruleDomain)}</span>` : ""}
+    ${c.notations.length ? " " + refs("outcome", c.notations) : ""}
+    <div class="muted">${esc(c.definition)}</div>
+    ${c.rules.length ? `<div>Rules: ${refs("rule", c.rules)}</div>` : ""}
+    ${c.related.length ? `<div>Related: ${refs("concept", c.related, cLabel)}</div>` : ""}
+    ${c.narrower.length ? `<ul class="tree">${c.narrower.map(n => node(C[n])).join("")}</ul>` : ""}</li>`;
+  return `<h2>Taxonomy <span class="muted" style="font-size:14px">${esc(D.meta.taxonomyScheme || "")}</span></h2>
+  <p class="lead">SKOS concept scheme. Top concepts are domain agents, in decision order; leaves are rule domains and classify outcome tokens.</p>
+  ${tops.map(t => `<div class="card"><div class="row"><b style="font-size:16px">${t.precedence}. ${ref("concept", t.id, t.label)}</b><span class="badge k-concept">agent ${esc(t.agent)}</span></div>
+  <div class="muted">${esc(t.definition)}</div><ul class="tree">${t.narrower.map(n => node(C[n])).join("")}</ul></div>`).join("")}`;
+};
+
+pages.ontology = () => {
+  const cls = D.ontology.classes, rels = D.ontology.relations, W = 1000;
+  // knowledge-graph classes on a fixed map; every other class (the record/reference data model) in rows below
+  const PRESET = {Policy: [120, 70], RuleSet: [120, 250], Rule: [400, 160], Outcome: [690, 70], Concept: [690, 250],
+                  Field: [400, 340], Term: [900, 250], Finding: [900, 70], Evidence: [900, 160]};
+  const pos = {}; cls.forEach(c => { if (PRESET[c.name]) pos[c.name] = PRESET[c.name]; });
+  // data model: the most-connected class in the middle, the others on an ellipse around it
+  const rest = cls.filter(c => !pos[c.name]).map(c => c.name), degree = n => rels.filter(r => r.domain === n || r.range === n).length;
+  if (rest.length) {
+    const hub = [...rest].sort((a, b) => degree(b) - degree(a))[0], others = rest.filter(n => n !== hub), cy0 = 600;
+    pos[hub] = [W / 2, cy0];
+    others.forEach((n, i) => { const a = Math.PI + 2 * Math.PI * (i + .5) / others.length;
+      pos[n] = [W / 2 + 400 * Math.cos(a), cy0 + 150 * Math.sin(a)]; });
+  }
+  const H = Math.max(420, ...Object.values(pos).map(p => p[1])) + 60;
+  const pairs = {};
+  rels.forEach(r => { if (pos[r.domain] && pos[r.range]) (pairs[r.domain + ">" + r.range] = pairs[r.domain + ">" + r.range] || []).push(r.name); });
+  const paths = Object.entries(pairs).map(([k, names]) => {
+    const [a, b] = k.split(">"), [x1, y1] = pos[a], [x2, y2] = pos[b], label = names.join(", ");
+    if (a === b) return `<path d="M${x1 - 10} ${y1 - 12} C ${x1 - 50} ${y1 - 70}, ${x1 + 50} ${y1 - 70}, ${x1 + 10} ${y1 - 12}" fill="none" class="edge" marker-end="url(#ar)"></path>
+      <text x="${x1}" y="${y1 - 64}" text-anchor="middle">${esc(label)}</text>`;
+    const back = pairs[b + ">" + a] ? 1 : 0, mx = (x1 + x2) / 2, my = (y1 + y2) / 2, dx = x2 - x1, dy = y2 - y1, len = Math.hypot(dx, dy) || 1;
+    const off = back ? 28 : 14, cx = mx - dy / len * off, cy = my + dx / len * off;
+    return `<path d="M${x1} ${y1} Q ${cx} ${cy} ${x2} ${y2}" fill="none" class="edge" marker-end="url(#ar)"><title>${esc(a + " " + label + " " + b)}</title></path>
+      <text x="${(mx + cx) / 2}" y="${(my + cy) / 2 - 4}" text-anchor="middle">${esc(label)}</text>`; }).join("");
+  const dots = cls.map(c => { const [x, y] = pos[c.name]; return `<g data-ref="class:${esc(c.name)}" style="cursor:pointer"><circle cx="${x}" cy="${y}" r="8" fill="${PRESET[c.name] ? "var(--accent)" : "var(--muted)"}"></circle>
+    <text x="${x}" y="${y + 24}" text-anchor="middle" style="font-weight:650;font-size:12.5px">${esc(c.name)}</text></g>`; }).join("");
+  return `<h2>Ontology</h2><p class="lead">The schema: kinds of things and which relations may connect them. Every graph edge is checked against it. Top: the knowledge-graph classes. Below: the ${esc(D.meta.recordNoun)} data model the rules read (never filled into the graph). Namespace <span class="mono">${esc(D.meta.namespace)}</span>.</p>
+  <div class="card" style="overflow-x:auto"><svg viewBox="0 0 ${W} ${H}" style="min-width:640px;width:100%;height:auto">
+  <defs><marker id="ar" viewBox="0 0 10 10" refX="17" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/></marker></defs>
+  <line x1="20" x2="${W - 20}" y1="400" y2="400" stroke="var(--line)" stroke-dasharray="4 4"></line>
+  ${paths}${dots}</svg></div>
+  <div class="grid2"><div class="tablewrap"><table><tr><th>Class</th><th>Description</th><th>Aligns with</th></tr>
+  ${cls.map(c => `<tr><td>${ref("class", c.name)}</td><td>${esc(c.description)}</td><td class="muted">${esc([].concat(c.aligns || []).join(", "))}</td></tr>`).join("")}</table></div>
+  <div class="tablewrap"><table><tr><th>Relation</th><th>Domain → range</th><th>Aligns with</th></tr>
+  ${rels.map(r => `<tr><td>${ref("relation", r.name)}</td><td>${ref("class", r.domain)} → ${ref("class", r.range)}</td><td class="muted">${esc(r.aligns || "")}</td></tr>`).join("")}</table></div></div>`;
+};
+
+pages.glossary = () => `<h2>Glossary <span class="muted" style="font-size:14px">${esc(D.meta.glossaryScheme || "")}</span></h2>
+  <p class="lead">Business terms and abbreviations (SKOS). Code meanings come from the code table.</p>
+  <div class="filter"><input type="text" id="gf" placeholder="Filter terms"><button class="chip" id="gc">Show code meanings</button></div><div id="gl"></div>`;
+pages.glossary.after = () => {
+  let codes = false;
+  const draw = () => {
+    const f = ($("#gf").value || "").toLowerCase();
+    const list = D.terms.filter(t => (codes || t.kind === "term") && (!f || (t.label + " " + t.definition + " " + t.alt.join(" ")).toLowerCase().includes(f)))
+      .sort((a, b) => a.label.localeCompare(b.label));
+    $("#gl").innerHTML = list.map(t => `<div class="card"><div class="row"><b>${ref("term", t.id, t.label)}</b>${t.alt.map(a => `<span class="pill">${esc(a)}</span>`).join("")}${t.kind === "code" ? '<span class="badge k-outcome">code</span>' : ""}</div>
+      <div>${esc(t.definition)}</div>${t.concepts.length ? `<div class="muted">Taxonomy: ${refs("concept", t.concepts, cLabel)}</div>` : ""}</div>`).join("") || '<p class="muted">No terms match.</p>';
+  };
+  $("#gf").oninput = draw; $("#gc").onclick = e => { codes = !codes; e.target.classList.toggle("on", codes); draw(); }; draw();
+};
+
+pages.rules = () => {
+  const agents = [...new Set(D.rules.map(r => r.agent))];
+  return `<h2>Rules</h2><p class="lead">Rule cards by domain agent and rule domain. Each has immutable versions in effective-dated rule sets; logic is CEL, wording is a template, sources are policy sections.</p>
+  ${agents.map(a => { const rs = D.rules.filter(r => r.agent === a); const domains = [...new Set(rs.map(r => r.domain))];
+    return `<div class="card"><h3 style="margin-top:0">${ref("concept", (D.concepts.find(c => c.isTop && c.agent === a) || {}).id, (D.concepts.find(c => c.isTop && c.agent === a) || {}).label || a)}</h3>
+    ${domains.map(d => `<div class="muted mono" style="margin-top:8px">${esc(d)}</div><div class="tablewrap"><table><tr><th>Rule</th><th>Intent (latest)</th><th>Explains</th><th>Versions</th></tr>
+    ${rs.filter(r => r.domain === d).map(r => { const v = latest(r); return `<tr><td>${ref("rule", r.id)}</td><td>${esc(v.intent)}</td><td>${v.token ? ref("outcome", v.token) : `<span class="muted">${esc(v.outcome.type)}</span>`}</td><td>${r.versions.map(x => "v" + x.version).join(", ")}</td></tr>`; }).join("")}</table></div>`).join("")}</div>`; }).join("")}`;
+};
+
+pages.fields = () => `<h2>Field catalog</h2><p class="lead">Every value a rule may read, with where it lives: record fields by path, reference fields by JSON Pointer with parameters filled from other fields.</p>
+  <div class="filter"><input type="text" id="ff" placeholder="Filter fields"></div><div class="tablewrap" id="fl"></div>`;
+pages.fields.after = () => {
+  const draw = () => { const f = ($("#ff").value || "").toLowerCase();
+    $("#fl").innerHTML = `<table><tr><th>Path</th><th>Source</th><th>Pointer / params</th><th>Concept</th><th>Read by</th></tr>
+    ${D.fields.filter(x => !f || (x.path + " " + x.description).toLowerCase().includes(f)).map(x => `<tr><td>${ref("field", x.path)}<div class="muted">${esc(x.description)}</div></td><td>${esc(x.source)}</td>
+    <td>${x.pointer ? `<code>${esc(x.pointer)}</code>` : '<span class="muted">record path</span>'}${Object.keys(x.params || {}).length ? `<div>${Object.entries(x.params).map(([k, v]) => `<span class="muted">{${esc(k)}}</span> ← ${ref("field", v)}`).join("<br>")}</div>` : ""}</td>
+    <td>${ref("concept", x.concept, cLabel(x.concept))}</td><td>${refs("rule", x.readBy)}</td></tr>`).join("")}</table>`; };
+  $("#ff").oninput = draw; draw();
+};
+
+pages.policies = () => `<h2>Policy sections</h2><p class="lead">The source text rules are derived from (provenance). ${D.policies.some(p => p.sample) ? "Sections marked sample are illustrative text for the reference implementation." : ""}</p>
+  ${D.policies.map(p => `<div class="card"><div class="row"><b>${ref("policy", p.key, p.title || p.key)}</b><span class="muted">${esc(p.key)}</span>${p.sample ? '<span class="sample">sample</span>' : ""}</div>
+  ${p.text ? `<div class="quote">${esc(p.text)}</div>` : '<div class="muted">No text stored for this section.</div>'}
+  <div class="row muted">${p.owner ? `<span>Owner ${esc(p.owner)}</span>` : ""}${p.effective ? `<span>Effective ${esc(p.effective)}</span>` : ""}</div>
+  <div>Rules derived from it: ${refs("rule", p.rules)}</div></div>`).join("")}`;
+
+pages.outcomes = () => `<h2>Outcomes</h2><p class="lead">Outcome tokens a ${esc(D.meta.recordNoun)} can carry, the concept that classifies each, and the rules that explain it. Tokens with no rule are reported as gaps.</p>
+  <div class="tablewrap"><table><tr><th>Token</th><th>Meaning</th><th>Classified by</th><th>Explained by</th></tr>
+  ${D.outcomes.map(o => `<tr><td>${ref("outcome", o.token)}</td><td>${esc(o.meaning || "")}</td><td>${o.concept ? ref("concept", o.concept, cLabel(o.concept)) : '<span class="muted">unclassified</span>'}</td><td>${o.rules.length ? refs("rule", o.rules) : '<span class="muted">no rule (gap)</span>'}</td></tr>`).join("")}</table></div>`;
+
+// ------------------------------------------------------------ graph
+pages.graph = () => `<h2>Knowledge graph</h2><p class="lead">Every concept, term, rule, field, outcome, policy and rule set, with typed edges. Drag to pan, scroll or pinch to zoom, click a node to see its neighbours.</p>
+  <div class="filter" id="kinds"></div><div class="filter" id="rels"></div><div id="graphbox"><svg id="g"></svg><div class="gtools"><button class="chip on" id="gfit">Fit</button></div><div class="gl" id="gstat"></div></div>`;
+let layoutCache = null;
+function layout(){
+  if (layoutCache) return layoutCache;
+  const N = D.graph.nodes, idx = Object.fromEntries(N.map((n, i) => [n.id, i]));
+  const E = D.graph.edges.map(e => [idx[e[0]], idx[e[2]]]).filter(e => e[0] != null && e[1] != null);
+  // one sector per domain agent (decision order clockwise from the top), shared knowledge in the middle
+  const groups = D.graph.groups.map(g => g.id), R0 = 520, anchor = {shared: [0, 0]};
+  groups.forEach((g, i) => { const a = -Math.PI / 2 + 2 * Math.PI * i / groups.length; anchor[g] = [R0 * Math.cos(a), R0 * Math.sin(a)]; });
+  let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;       // deterministic
+  const n = N.length, xs = new Float64Array(n), ys = new Float64Array(n);
+  N.forEach((nd, i) => { const [ax, ay] = anchor[nd.group] || [0, 0]; xs[i] = ax + (rnd() - .5) * 160; ys[i] = ay + (rnd() - .5) * 160; });
+  const k = 46;
+  for (let it = 0; it < 420; it++) {
+    const t = 18 * (1 - it / 420) + .5, dx = new Float64Array(n), dy = new Float64Array(n);
+    for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {                         // short-range repulsion
+      const ex = xs[i] - xs[j], ey = ys[i] - ys[j], d2 = ex * ex + ey * ey + .01;
+      if (d2 > 40000) continue; const f = k * k / d2; dx[i] += ex * f; dy[i] += ey * f; dx[j] -= ex * f; dy[j] -= ey * f; }
+    for (const [a, b] of E) { const ex = xs[a] - xs[b], ey = ys[a] - ys[b], d = Math.sqrt(ex * ex + ey * ey) + .01;
+      const same = N[a].group === N[b].group, f = (d - (same ? k : k * 2.5)) / d * (same ? .5 : .08);
+      dx[a] -= ex * f; dy[a] -= ey * f; dx[b] += ex * f; dy[b] += ey * f; }
+    for (let i = 0; i < n; i++) { const [ax, ay] = anchor[N[i].group] || [0, 0];               // pull to own sector
+      dx[i] += (ax - xs[i]) * .08; dy[i] += (ay - ys[i]) * .08;
+      const d = Math.sqrt(dx[i] * dx[i] + dy[i] * dy[i]) + .01; xs[i] += dx[i] / d * Math.min(d, t); ys[i] += dy[i] / d * Math.min(d, t); }
+  }
+  const x0 = Math.min(...xs), y0 = Math.min(...ys);
+  for (let i = 0; i < n; i++) { xs[i] -= x0; ys[i] -= y0; }
+  const glab = Object.fromEntries(Object.entries(anchor).map(([g, [ax, ay]]) => [g, [ax - x0, ay - y0]]));
+  layoutCache = {N, E, xs, ys, idx, glab}; return layoutCache;
+}
+pages.graph.after = () => {
+  const {N, E, xs, ys, idx, glab} = layout(), svg = $("#g"), NS = "http://www.w3.org/2000/svg";
+  const kinds = [...new Set(N.map(n => n.kind))], rels = [...new Set(D.graph.edges.map(e => e[1]))];
+  const onK = new Set(kinds), onR = new Set(rels);
+  $("#kinds").innerHTML = kinds.map(k => `<button class="chip on" data-k="${k}"><i style="background:${KIND_COLOR(k)}"></i>${esc(KIND_LABEL[k] || k)} (${N.filter(n => n.kind === k).length})</button>`).join("");
+  $("#rels").innerHTML = rels.map(r => `<button class="chip on" data-r="${r}">${esc(r)}</button>`).join("");
+  const minx = Math.min(...xs) - 60, miny = Math.min(...ys) - 60, w = Math.max(...xs) - minx + 60, h = Math.max(...ys) - miny + 60;
+  let vb = [minx, miny, w, h]; const setVB = () => svg.setAttribute("viewBox", vb.join(" ")); setVB();
+  $("#gfit").onclick = e => { e.stopPropagation(); vb = [minx, miny, w, h]; setVB(); paint(); };
+  const gG = document.createElementNS(NS, "g"), gE = document.createElementNS(NS, "g"), gN = document.createElementNS(NS, "g"), gT = document.createElementNS(NS, "g");
+  svg.replaceChildren(gG, gE, gN, gT);
+  const GL = Object.fromEntries(D.graph.groups.map(g => [g.id, g.label])); GL.shared = "Shared (base)";
+  Object.entries(glab).forEach(([g, [x, y]]) => { const t = document.createElementNS(NS, "text"); t.setAttribute("x", x); t.setAttribute("y", y - 150);
+    t.setAttribute("text-anchor", "middle"); t.setAttribute("class", "glabel"); t.textContent = GL[g] || g; gG.appendChild(t); });
+  const edgeEls = D.graph.edges.map(e => { const a = idx[e[0]], b = idx[e[2]]; const l = document.createElementNS(NS, "line");
+    l.setAttribute("x1", xs[a]); l.setAttribute("y1", ys[a]); l.setAttribute("x2", xs[b]); l.setAttribute("y2", ys[b]); l.setAttribute("class", "edge");
+    const t = document.createElementNS(NS, "title"); t.textContent = `${e[0]} -${e[1]}-> ${e[2]}`; l.appendChild(t); gE.appendChild(l); return l; });
+  const deg = N.map(() => 0); E.forEach(([a, b]) => { deg[a]++; deg[b]++; });
+  const nodeEls = N.map((nd, i) => { const c = document.createElementNS(NS, "circle"); c.setAttribute("cx", xs[i]); c.setAttribute("cy", ys[i]);
+    c.setAttribute("r", 4 + Math.min(9, Math.sqrt(deg[i]) * 1.6)); c.setAttribute("fill", KIND_COLOR(nd.kind)); c.setAttribute("class", "node");
+    const t = document.createElementNS(NS, "title"); t.textContent = `${KIND_LABEL[nd.kind] || nd.kind}: ${nd.label}`; c.appendChild(t);
+    c.addEventListener("click", ev => { ev.stopPropagation(); select(i); open(refFor(nd.id)); }); gN.appendChild(c); return c; });
+  const labelEls = N.map((nd, i) => { const t = document.createElementNS(NS, "text"); t.setAttribute("x", xs[i] + 9); t.setAttribute("y", ys[i] + 4);
+    t.textContent = nd.label.length > 34 ? nd.label.slice(0, 33) + "…" : nd.label; gT.appendChild(t); return t; });
+  let sel = -1;
+  const visible = i => onK.has(N[i].kind);
+  function paint(){
+    const nb = new Set(); if (sel >= 0) { nb.add(sel); D.graph.edges.forEach(e => { if (!onR.has(e[1])) return; const a = idx[e[0]], b = idx[e[2]]; if (a === sel) nb.add(b); if (b === sel) nb.add(a); }); }
+    const scale = vb[2] / svg.clientWidth;
+    N.forEach((nd, i) => { const show = visible(i); nodeEls[i].style.display = show ? "" : "none";
+      nodeEls[i].classList.toggle("dim", sel >= 0 && !nb.has(i)); nodeEls[i].classList.toggle("sel", i === sel);
+      const lab = show && (sel >= 0 ? nb.has(i) : (scale < .55 || (nd.kind === "concept" && C[nd.id.slice(8)] && C[nd.id.slice(8)].isTop)));
+      labelEls[i].style.display = lab ? "" : "none"; labelEls[i].classList.toggle("dim", sel >= 0 && !nb.has(i)); });
+    D.graph.edges.forEach((e, j) => { const a = idx[e[0]], b = idx[e[2]], show = onR.has(e[1]) && visible(a) && visible(b);
+      edgeEls[j].style.display = show ? "" : "none"; const hi = sel >= 0 && (a === sel || b === sel);
+      edgeEls[j].classList.toggle("hi", hi); edgeEls[j].classList.toggle("dim", sel >= 0 && !hi); });
+    $("#gstat").textContent = sel >= 0 ? `${N[sel].label}: ${nb.size - 1} neighbours. Click empty space to clear.` : `${N.filter((_, i) => visible(i)).length} nodes shown`;
+  }
+  window.__graphSelect = id => { if (idx[id] != null) { const i = idx[id]; vb = [xs[i] - w / 4, ys[i] - h / 4, w / 2, h / 2]; setVB(); select(i); } };
+  function select(i){ sel = i; paint(); }
+  svg.addEventListener("click", () => { sel = -1; paint(); });
+  $("#kinds").onclick = e => { const b = e.target.closest("[data-k]"); if (!b) return; const k = b.dataset.k; onK.has(k) ? onK.delete(k) : onK.add(k); b.classList.toggle("on"); paint(); };
+  $("#rels").onclick = e => { const b = e.target.closest("[data-r]"); if (!b) return; const r = b.dataset.r; onR.has(r) ? onR.delete(r) : onR.add(r); b.classList.toggle("on"); paint(); };
+  let drag = null;
+  svg.addEventListener("pointerdown", e => { drag = {x: e.clientX, y: e.clientY, vb: [...vb], moved: false}; svg.classList.add("dragging"); });
+  window.addEventListener("pointermove", e => { if (!drag) return; const s = vb[2] / svg.clientWidth; const dx = (e.clientX - drag.x) * s, dy = (e.clientY - drag.y) * s;
+    if (Math.abs(dx) + Math.abs(dy) > 2) drag.moved = true; vb = [drag.vb[0] - dx, drag.vb[1] - dy, vb[2], vb[3]]; setVB(); });
+  window.addEventListener("pointerup", () => { if (drag && drag.moved) { svg.addEventListener("click", stop, {capture: true, once: true}); } drag = null; svg.classList.remove("dragging"); });
+  const stop = e => e.stopPropagation();
+  svg.addEventListener("wheel", e => { e.preventDefault(); const f = e.deltaY > 0 ? 1.15 : 1 / 1.15, r = svg.getBoundingClientRect();
+    const px = vb[0] + (e.clientX - r.left) / r.width * vb[2], py = vb[1] + (e.clientY - r.top) / r.height * vb[3];
+    vb = [px - (px - vb[0]) * f, py - (py - vb[1]) * f, vb[2] * f, vb[3] * f]; setVB(); paint(); }, {passive: false});
+  paint();
+};
+function refFor(nodeId){ const [k, ...rest] = nodeId.split(":"); const id = rest.join(":");
+  if (k === "rule") return "rule:" + id; if (k === "field") return "field:" + id; if (k === "concept") return "concept:" + id;
+  if (k === "term") return "term:" + id; if (k === "outcome") return "outcome:" + id; if (k === "policy") return "policy:" + id;
+  if (k === "ruleset") return "ruleset:" + id; return nodeId; }
+
+// ------------------------------------------------------------ detail panel
+const detail = {};
+const graphLink = nodeId => `<p><a href="#/graph" data-graph="${esc(nodeId)}" class="ref">Show in graph</a></p>`;
+detail.concept = c => `${badge("concept")}<h2>${esc(c.label)}</h2><p class="mono muted">${esc(c.id)}</p><p>${esc(c.definition)}</p>
+  <dl class="kv"><dt>Agent</dt><dd class="mono">${esc(c.agent || "")}</dd><dt>Decision order</dt><dd>${esc(c.precedence)}</dd>
+  ${c.ruleDomain ? `<dt>Rule domain</dt><dd class="mono">${esc(c.ruleDomain)}</dd>` : ""}
+  <dt>Broader</dt><dd>${c.broader ? ref("concept", c.broader, cLabel(c.broader)) : '<span class="muted">top concept</span>'}</dd>
+  <dt>Narrower</dt><dd>${refs("concept", c.narrower, cLabel)}</dd><dt>Related</dt><dd>${refs("concept", c.related, cLabel)}</dd>
+  <dt>Synonyms</dt><dd>${c.alt.map(a => `<span class="pill">${esc(a)}</span>`).join("") || '<span class="muted">none</span>'}</dd>
+  <dt>Classifies</dt><dd>${refs("outcome", c.notations)}</dd><dt>Rules</dt><dd>${refs("rule", c.rules)}</dd>
+  <dt>Glossary</dt><dd>${refs("term", D.terms.filter(t => t.concepts.includes(c.id)).map(t => t.id), id => T[id].label)}</dd>
+  <dt>Fields</dt><dd>${refs("field", D.fields.filter(f => f.concept === c.id).map(f => f.path))}</dd></dl>${graphLink("concept:" + c.id)}`;
+detail.term = t => `${badge("term")}<h2>${esc(t.label)}</h2>${t.alt.map(a => `<span class="pill">${esc(a)}</span>`).join("")}<p>${esc(t.definition)}</p>
+  ${t.example ? `<p class="muted">Example: ${esc(t.example)}</p>` : ""}
+  <dl class="kv"><dt>Taxonomy</dt><dd>${refs("concept", t.concepts, cLabel)}</dd>${t.notation ? `<dt>Notation</dt><dd>${ref("outcome", t.notation)}</dd>` : ""}${t.source ? `<dt>Source</dt><dd>${esc(t.source)}</dd>` : ""}</dl>
+  ${t.kind === "term" ? graphLink("term:" + t.id) : ""}`;
+detail.rule = (r, vsel) => { const v = r.versions.find(x => x.version === vsel) || latest(r);
+  return `${badge("rule")}<h2>${esc(r.id)}</h2><p>${esc(v.intent)}</p>
+  <div class="versions">${r.versions.map(x => `<button class="chip ${x.version === v.version ? "on" : ""}" data-ver="${r.id}|${x.version}">v${x.version} · ${esc(x.status)}</button>`).join("")}</div>
+  <dl class="kv"><dt>Concept</dt><dd>${ref("concept", r.concept, cLabel(r.concept))}</dd><dt>Rule domain</dt><dd class="mono">${esc(r.domain)}</dd>
+  <dt>Explains</dt><dd>${v.token ? ref("outcome", v.token) : esc(v.outcome.type)}</dd><dt>Order</dt><dd>${esc(v.order)}</dd>
+  <dt>Rule sets</dt><dd>${refs("ruleset", v.rulesets)}</dd><dt>Overridden by</dt><dd>${refs("rule", v.overriddenBy)}</dd>
+  <dt>Overrides</dt><dd>${refs("rule", r.overrides)}</dd><dt>Owner</dt><dd>${esc(v.owner || "")}</dd><dt>Confidence</dt><dd>${esc(v.confidence)}</dd></dl>
+  <h3>Condition (CEL)</h3><pre>${esc(v.condition)}</pre>
+  ${v.outcome.amount ? `<h3>Amount (CEL)</h3><pre>${esc(v.outcome.amount)}</pre>` : ""}
+  <h3>Reads</h3><div>${refs("field", [...v.recordInputs, ...v.referenceInputs])}</div>
+  ${v.template ? `<h3>Answer wording</h3><div class="quote">${esc(v.template)}</div>` : ""}
+  <h3>Sources</h3>${v.sources.map(s => `<div>${ref("policy", s, (P[s] && P[s].title) || s)}${P[s] && P[s].text ? `<div class="quote">${esc(P[s].text)}</div>` : ""}</div>`).join("") || '<span class="muted">none</span>'}
+  ${graphLink("rule:" + r.id)}`; };
+detail.field = f => `${badge("field")}<h2 class="mono" style="font-size:17px">${esc(f.path)}</h2><p>${esc(f.description)}</p>
+  <dl class="kv"><dt>Source</dt><dd>${esc(f.source)}</dd><dt>Type</dt><dd>${esc(f.type)}</dd><dt>Entity</dt><dd>${ref("class", f.entity)}</dd>
+  <dt>Concept</dt><dd>${ref("concept", f.concept, cLabel(f.concept))}</dd>${f.pointer ? `<dt>JSON Pointer</dt><dd><code>${esc(f.pointer)}</code></dd>` : ""}
+  ${Object.keys(f.params || {}).length ? `<dt>Depends on</dt><dd>${Object.entries(f.params).map(([k, v]) => `{${esc(k)}} ← ${ref("field", v)}`).join("<br>")}</dd>` : ""}
+  <dt>Needed by</dt><dd>${refs("field", D.fields.filter(x => Object.values(x.params || {}).includes(f.path)).map(x => x.path))}</dd>
+  <dt>Read by</dt><dd>${refs("rule", f.readBy)}</dd>${f.ncpdp ? `<dt>NCPDP</dt><dd class="mono">${esc(f.ncpdp)}</dd>` : ""}</dl>${graphLink("field:" + f.path)}`;
+detail.policy = p => `${badge("policy")}<h2>${esc(p.title || p.key)}</h2><p class="muted">${esc(p.key)}${p.sample ? " · sample text" : ""}</p>
+  ${p.text ? `<div class="quote">${esc(p.text)}</div>` : '<p class="muted">No text stored.</p>'}
+  <dl class="kv">${p.owner ? `<dt>Owner</dt><dd>${esc(p.owner)}</dd>` : ""}${p.version ? `<dt>Version</dt><dd>${esc(p.version)}</dd>` : ""}${p.effective ? `<dt>Effective</dt><dd>${esc(p.effective)}</dd>` : ""}
+  <dt>Rules derived</dt><dd>${refs("rule", p.rules)}</dd></dl>${graphLink("policy:" + p.key)}`;
+detail.outcome = o => `${badge("outcome")}<h2 class="mono">${esc(o.token)}</h2><p>${esc(o.meaning || "")}</p>
+  <dl class="kv"><dt>Classified by</dt><dd>${o.concept ? ref("concept", o.concept, cLabel(o.concept)) : '<span class="muted">unclassified</span>'}</dd>
+  <dt>Explained by</dt><dd>${o.rules.length ? refs("rule", o.rules) : '<span class="muted">no rule: reported as a gap</span>'}</dd></dl>${graphLink("outcome:" + o.token)}`;
+detail.ruleset = r => `${badge("ruleset")}<h2>${esc(r.id)}</h2><p>${esc(r.reason || "")}</p>
+  <dl class="kv"><dt>Rule domain</dt><dd class="mono">${esc(r.domain)}</dd><dt>Owner</dt><dd>${esc(r.owner)}</dd><dt>Status</dt><dd>${esc(r.status)}</dd>
+  <dt>In force</dt><dd>${esc(r.from)} → ${esc(r.to || "open")}</dd><dt>Replaces</dt><dd>${r.previous ? ref("ruleset", r.previous) : '<span class="muted">first release</span>'}</dd>
+  <dt>Replaced by</dt><dd>${refs("ruleset", D.rulesets.filter(x => x.previous === r.id).map(x => x.id))}</dd>
+  <dt>Rule versions</dt><dd>${r.rules.map(k => ref("rule", k.split("@")[0], k)).join(", ")}</dd></dl>${graphLink("ruleset:" + r.id)}`;
+detail.class = c => `${badge("class")}<h2>${esc(c.name)}</h2><p>${esc(c.description)}</p>
+  <dl class="kv"><dt>Outgoing</dt><dd>${D.ontology.relations.filter(r => r.domain === c.name).map(r => `${ref("relation", r.name)} → ${ref("class", r.range)}`).join("<br>") || '<span class="muted">none</span>'}</dd>
+  <dt>Incoming</dt><dd>${D.ontology.relations.filter(r => r.range === c.name).map(r => `${ref("class", r.domain)} ${ref("relation", r.name)}`).join("<br>") || '<span class="muted">none</span>'}</dd></dl>`;
+detail.relation = r => `${badge("relation")}<h2>${esc(r.name)}</h2><p>${ref("class", r.domain)} → ${ref("class", r.range)}</p>${r.aligns ? `<p class="muted">Aligns with ${esc(r.aligns)}</p>` : ""}
+  <p>${D.graph.edges.filter(e => e[1] === r.name).length} edges in the graph.</p>`;
+function open(key, version){
+  const i = key.indexOf(":"), kind = key.slice(0, i), id = key.slice(i + 1);
+  const item = {concept:C, term:T, rule:R, field:F, policy:P, outcome:O, ruleset:RS, class:CL, relation:REL}[kind]?.[id];
+  if (!item) return;
+  $("#detail").innerHTML = `<button class="close" id="dclose" aria-label="Close">Close</button>` + detail[kind](item, version);
+  $("#wrap").classList.add("split"); $("#detail").scrollTop = 0;
+  $("#dclose").onclick = () => $("#wrap").classList.remove("split");
+}
+document.addEventListener("click", e => {
+  const g = e.target.closest("[data-graph]"); if (g) { e.preventDefault(); const id = g.dataset.graph; location.hash = "#/graph"; setTimeout(() => window.__graphSelect && window.__graphSelect(id), 30); return; }
+  const v = e.target.closest("[data-ver]"); if (v) { const [rid, ver] = v.dataset.ver.split("|"); open("rule:" + rid, +ver); return; }
+  const a = e.target.closest("[data-ref]"); if (a) { e.preventDefault(); open(a.dataset.ref); }
+});
+
+// ------------------------------------------------------------ search
+const INDEX = [
+  ...D.terms.map(t => ({k: "term", id: t.id, l: t.label, s: [t.label, ...t.alt, t.definition].join(" ")})),
+  ...D.concepts.map(c => ({k: "concept", id: c.id, l: c.label, s: [c.label, c.id, ...c.alt, c.definition].join(" ")})),
+  ...D.rules.map(r => ({k: "rule", id: r.id, l: `${r.id}: ${latest(r).intent}`, s: [r.id, r.domain, ...r.versions.map(v => v.intent + " " + v.condition)].join(" ")})),
+  ...D.fields.map(f => ({k: "field", id: f.path, l: f.path, s: [f.path, f.description, f.pointer || ""].join(" ")})),
+  ...D.policies.map(p => ({k: "policy", id: p.key, l: p.title || p.key, s: [p.key, p.title || "", p.text || ""].join(" ")})),
+  ...D.outcomes.map(o => ({k: "outcome", id: o.token, l: `${o.token} ${o.meaning || ""}`, s: [o.token, o.meaning || ""].join(" ")})),
+  ...D.rulesets.map(r => ({k: "ruleset", id: r.id, l: r.id, s: [r.id, r.domain, r.reason || ""].join(" ")})),
+];
+let hits = [], on = 0;
+$("#q").addEventListener("input", () => {
+  const q = $("#q").value.trim().toLowerCase(), box = $("#results");
+  if (!q) { box.style.display = "none"; return; }
+  const words = q.split(/\s+/);
+  hits = INDEX.map(x => { const s = x.s.toLowerCase(), l = x.l.toLowerCase(); if (!words.every(w => s.includes(w))) return null;
+      return [x, (l.startsWith(q) ? 3 : 0) + (l.includes(q) ? 2 : 0) + (x.k === "term" ? .5 : 0)]; })
+    .filter(Boolean).sort((a, b) => b[1] - a[1]).slice(0, 14).map(x => x[0]);
+  on = 0;
+  box.innerHTML = hits.map((h, i) => `<div data-i="${i}" class="${i === 0 ? "on" : ""}">${badge(h.k)}<span>${esc(h.l)}</span></div>`).join("") || '<div class="muted">No match</div>';
+  box.style.display = "block";
+});
+$("#q").addEventListener("keydown", e => {
+  const box = $("#results"); if (!hits.length) return;
+  if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); on = (on + (e.key === "ArrowDown" ? 1 : hits.length - 1)) % hits.length;
+    [...box.children].forEach((c, i) => c.classList.toggle("on", i === on)); }
+  if (e.key === "Enter") { open(hits[on].k + ":" + hits[on].id); box.style.display = "none"; }
+  if (e.key === "Escape") box.style.display = "none";
+});
+$("#results").addEventListener("click", e => { const d = e.target.closest("[data-i]"); if (!d) return; const h = hits[+d.dataset.i]; open(h.k + ":" + h.id); $("#results").style.display = "none"; });
+document.addEventListener("click", e => { if (!e.target.closest(".search")) $("#results").style.display = "none"; });
+
+// ------------------------------------------------------------ routing
+function route(){
+  const tab = (location.hash.match(/^#\/(\w+)/) || [, "overview"])[1];
+  const page = pages[tab] || pages.overview;
+  $("#main").innerHTML = page();
+  document.querySelectorAll("#tabs a").forEach(a => a.classList.toggle("on", a.dataset.tab === (pages[tab] ? tab : "overview")));
+  if (page.after) page.after();
+}
+window.addEventListener("hashchange", route);
+route();
+})();
+</script>
+</body>
+</html>

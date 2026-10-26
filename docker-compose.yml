@@ -1,0 +1,16 @@
+# Local MongoDB for the knowledge store. Used by scripts/run-local.sh; open it in MongoDB Compass at
+# mongodb://127.0.0.1:27017 (database "knowledge").
+services:
+  mongo:
+    image: mongo:7.0
+    container_name: madhava-mongo
+    ports:
+      - "127.0.0.1:27017:27017"
+    volumes:
+      - madhava-mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      retries: 20
+volumes:
+  madhava-mongo-data:

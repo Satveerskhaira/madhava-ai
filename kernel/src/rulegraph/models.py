@@ -215,5 +215,6 @@ class Explanation(BaseModel):
     rules_context: dict[str, Any] = Field(default_factory=dict)
     reference_context: dict[str, Any] = Field(default_factory=dict)
     compare: dict[str, Any] | None = None
+    sources: list[dict[str, Any]] = Field(default_factory=list)   # policy passages behind the cited rules
     rounds: list[RoundRecord] = Field(default_factory=list)
     trace: list[str] = Field(default_factory=list)

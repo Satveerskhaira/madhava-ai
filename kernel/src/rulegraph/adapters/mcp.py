@@ -74,7 +74,15 @@ def build_mcp_server(toolbox: Toolbox, planner: Planner | None = None, name: str
     def lookup_concept(text: str) -> list[dict[str, Any]]:
         return toolbox.lookup_concept(text)
 
-    @server.tool(description="Semantic search over concepts, catalog fields, codes and rules.")
+    @server.tool(description="Glossary terms and abbreviations found in text, with definitions and linked concepts.")
+    def lookup_term(text: str) -> list[dict[str, Any]]:
+        return toolbox.lookup_term(text)
+
+    @server.tool(description="A source policy section's text and the rules derived from it ('<doc> / <section>').")
+    def get_policy_section(policy: str) -> dict[str, Any]:
+        return toolbox.get_policy(policy)
+
+    @server.tool(description="Semantic search over glossary terms, concepts, catalog fields, codes, rules and policy text.")
     def search_knowledge(query: str, kinds: list[str] | None = None, k: int = 5) -> list[dict[str, Any]]:
         return toolbox.search_knowledge(query, kinds, k)
 

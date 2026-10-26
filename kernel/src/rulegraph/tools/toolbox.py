@@ -214,6 +214,21 @@ class Toolbox:
                         "agent": self.kn.taxonomy.agent_for(cid), "outcomes": c.notations})
         return out
 
+    def lookup_term(self, text: str) -> list[dict[str, Any]]:
+        """Glossary terms (and abbreviations) found in the text, with definitions and linked concepts."""
+        g = self.kn.glossary
+        return [{"term": t.id, "label": t.prefLabel, "abbreviations": t.altLabels, "definition": t.definition,
+                 "concepts": t.concepts, "notation": t.notation} for t in (g.lookup(text) if g else [])]
+
+    def get_policy(self, policy: str) -> dict[str, Any]:
+        """A policy section's text and the rules derived from it. `policy` is `<doc>` or `<doc> / <section>`."""
+        p = (self.kn.policies or {}).get(policy)
+        rules = sorted({src.split(":", 1)[1] for src, rel, dst in self.kn.graph.edges()
+                        if rel == "derived_from" and dst == f"policy:{policy}"})
+        if p is None:
+            return {"policy": policy, "found": False, "rules": rules}
+        return {"policy": policy, "found": True, **p, "rules": rules}
+
     def search_knowledge(self, query: str, kinds: list[str] | None = None, k: int = 5) -> list[dict[str, Any]]:
         hits = self.kn.semantic.search(query, kinds=set(kinds) if kinds else None, k=k)
         return [{"id": h.doc.id, "kind": h.doc.kind, "score": round(h.score, 3), **h.doc.meta} for h in hits]

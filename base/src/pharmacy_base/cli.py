@@ -80,7 +80,13 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("validate", help="CI checks for the knowledge pack")
     c = sub.add_parser("cards", help="print agent cards")
     c.add_argument("--agent")
+    from rulegraph.commands import KNOWLEDGE_COMMANDS, add_knowledge_commands, run_knowledge_command
+    add_knowledge_commands(sub)
     args = p.parse_args(argv)
+    if args.cmd in KNOWLEDGE_COMMANDS:
+        from .system import base_source, build, discover_domains
+        return run_knowledge_command(args, lambda: build(_settings(args)).knowledge,
+                                     lambda: [base_source(), *[pk.source for pk in discover_domains()]])
 
     if args.cmd == "ask":
         return asyncio.run(_ask(args))

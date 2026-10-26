@@ -1,0 +1,11 @@
+# Source policy sections shared across domains. SAMPLE text for the reference implementation.
+
+policies:
+- doc: Reject Code Table
+  title: NCPDP reject codes used in pharmacy adjudication
+  text: Reject codes returned on rejected claims follow the NCPDP Telecommunication standard. Each code names one
+    reason category (for example 75 Prior Authorization Required, 76 Plan Limitations Exceeded, 79 Refill Too Soon).
+    The engine may return several codes on one claim; the first blocking reason in adjudication order is the primary
+    reason.
+  owner: pharmacy-ops
+  sample: true

@@ -17,6 +17,8 @@ nouns: {record: order, reference: account terms}   # used in answers and MCP too
 codes_kind: reject            # outcome token kind for codes: reject:<code>
 files:
   taxonomy: taxonomy/outcomes.taxonomy.yaml
+  glossary: glossary/glossary.yaml          # SKOS glossary scheme + terms (fragments: terms only)
+  policies: policies/policies.yaml          # source policy sections with text
   ontology: ontology/domain.ontology.yaml
   catalog: catalog/fields.yaml
   codes: catalog/codes.yaml
@@ -50,7 +52,31 @@ concepts:
 
 ## Ontology
 
-Keep the graph classes (`Outcome, Concept, Rule, RuleSet, Policy, Field, Finding, Evidence`) and relations (`explains, in_domain, reads, overridden_by, derived_from, broader, related, classifies, describes`) with their domains and ranges. Add domain classes (the record, the reference entities) freely; catalog `entity` values must be classes here.
+Keep the graph classes (`Outcome, Concept, Rule, RuleSet, Policy, Field, Term, Finding, Evidence`) and relations with their domains and ranges:
+- used by rule search: `explains, in_domain, reads, overridden_by, derived_from, broader, related, classifies, describes`
+- structural (export, impact analysis, browsing; never steer search): `depends_on` (Field→Field, from catalog `params`), `member_of` (Rule→RuleSet), `supersedes` (RuleSet→RuleSet, `aligns_with: prov:wasRevisionOf`), `about` (Term→Concept, `aligns_with: skos:closeMatch`). A structural edge is added only when the ontology declares its relation.
+
+Add domain classes (the record, the reference entities) freely; catalog `entity` values must be classes here. Data-model relations between them (claim has member, and so on) describe the record's shape and are never filled into the graph.
+
+## Glossary (SKOS)
+
+```yaml
+scheme: {id: "orders:glossary", prefLabel: Order glossary, namespace: "https://example.org/orders/glossary/"}   # base only
+terms:
+  - {id: credit-limit, prefLabel: Credit limit, altLabels: [limit], concepts: [credit.limit],
+     definition: "The most an account may owe at once under its terms."}
+```
+Separate from the taxonomy: the taxonomy classifies outcomes and owns routing; the glossary defines words and abbreviations. `id` is kebab-case; labels and abbreviations must be unique across the glossary; `concepts` must exist (a base term may only point at top concepts). Code meanings from the code table become terms `code-<value>` automatically, so write each meaning once. Definition questions are answered from exact term and abbreviation matches first.
+
+## Policy sections
+
+```yaml
+policies:
+  - {doc: Fulfillment Guide, section: "1.3", title: Delivery regions, owner: fulfillment-team,
+     version: "3", effective_from: "2026-01-01",
+     text: "Orders ship only to regions listed in the account terms; other regions are rejected."}
+```
+`doc` + `section` must match the rule cards' `source_refs` exactly (the id is `<doc> / <section>`, or `<doc>` with no section). Once a pack has any policy text, every cited section must have text. Mark illustrative text `sample: true`. Answers carry these passages in `Explanation.sources`.
 
 ## Codes
 
