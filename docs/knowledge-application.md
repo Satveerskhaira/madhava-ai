@@ -648,7 +648,7 @@ On macOS or Linux, with Python 3.11 or newer, Git and (optionally) Docker:
 
 ```bash
 mkdir -p ~/Developer/AI/madhava-ai && cd ~/Developer/AI/madhava-ai
-git clone https://github.com/Satveerskhaira/madhava-ai.git
+git clone -b knowledge-standards https://github.com/Satveerskhaira/madhava-ai.git   # plain clone once PR #6 is merged
 ./madhava-ai/scripts/run-local.sh
 ```
 

@@ -2,7 +2,7 @@
 # Run the whole knowledge application on your machine.
 #
 #   mkdir -p ~/Developer/AI/madhava-ai && cd ~/Developer/AI/madhava-ai
-#   git clone https://github.com/Satveerskhaira/madhava-ai.git
+#   git clone -b knowledge-standards https://github.com/Satveerskhaira/madhava-ai.git   # plain clone once PR #6 is merged
 #   ./madhava-ai/scripts/run-local.sh            # setup + checks + MongoDB + publish + knowledge service
 #
 # Layout it creates (the workspace is the folder that holds this repo):
