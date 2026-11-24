@@ -50,6 +50,7 @@ Ask a single domain agent: `pharmacy-domains ask utilization_management RX-1001 
 - [`docs/viewing-knowledge.md`](docs/viewing-knowledge.md): browse the knowledge locally, export it for Protégé, yEd or Gephi, schemas in your editor, MongoDB
 - [`docs/claim-explainability-design.md`](docs/claim-explainability-design.md): initial design (v0.1)
 - [`docs/ai-strategy-2027.md`](docs/ai-strategy-2027.md): 2027 org AI strategy: the +AI to AI+ shift, operating model across enterprise, Solution Engineering and delivery towers, Lead AI Architect role, roadmap and KPIs
+- [`docs/ai-strategy-2027-golden-path-roadmap.md`](docs/ai-strategy-2027-golden-path-roadmap.md): alternative 2027 strategy and executive roadmap: centralized architecture and vendor vetting with federated engineering, Golden Path blueprints, 3-tier intake, Extend/Buy/Build vendor rubric and VP asks
 - [`docs/madhava-architecture.html`](docs/madhava-architecture.html): interactive architecture page (open in a browser): layers, step-through flows, backend technology and agent layers. Domain agents run in process inside the core agent; only the core is exposed over A2A.
 
 ## Status
